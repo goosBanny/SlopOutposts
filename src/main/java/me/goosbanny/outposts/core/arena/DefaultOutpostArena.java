@@ -57,6 +57,7 @@ public class DefaultOutpostArena implements OutpostArena {
 
     private final String id;
     private final Component displayName;
+    private final String serializedDisplayName;
     private ArenaGeometry geometry;
     private final ArenaMechanicsConfig mechanicsConfig;
     private final ArenaMultipliers multipliers;
@@ -98,6 +99,7 @@ public class DefaultOutpostArena implements OutpostArena {
     private final Map<String, List<Player>> teamsPresent = new HashMap<>(8);
     private final List<String> presentTeamIds = new ArrayList<>(8);
     private final Map<String, Object> reusableContext = new HashMap<>(4);
+    private final Set<UUID> playersInZone = ConcurrentHashMap.newKeySet();
     private static final Map<String, Long> LAST_CAPTURE_TIMES = new ConcurrentHashMap<>();
 
     // Dynamic changing outpost state & language overrides
@@ -158,6 +160,7 @@ public class DefaultOutpostArena implements OutpostArena {
     ) {
         this.id = id;
         this.displayName = displayName;
+        this.serializedDisplayName = miniMessage.serialize(displayName);
         this.geometry = geometry;
         this.mechanicsConfig = mechanicsConfig;
         this.multipliers = multipliers;
@@ -169,6 +172,11 @@ public class DefaultOutpostArena implements OutpostArena {
         this.occupancyMode = occupancyMode != null ? occupancyMode : OccupancyMode.TEAM;
         this.rewardIntervalSeconds = Math.max(1, rewardIntervalSeconds);
         updateSnapshot();
+    }
+
+    @Override
+    public String getSerializedDisplayName() {
+        return serializedDisplayName;
     }
 
     @Override
@@ -248,6 +256,10 @@ public class DefaultOutpostArena implements OutpostArena {
     @Override
     public void setBoundingParticlesEnabled(boolean enabled) {
         this.boundingParticlesEnabled = enabled;
+    }
+
+    public Set<UUID> getPlayersInZone() {
+        return Collections.unmodifiableSet(playersInZone);
     }
 
     public @Nullable String getClearingTeamName() {
@@ -624,6 +636,11 @@ public class DefaultOutpostArena implements OutpostArena {
                     }
                 }
             }
+        }
+
+        playersInZone.clear();
+        for (Player p : nearbyCandidates) {
+            playersInZone.add(p.getUniqueId());
         }
 
         for (Player player : nearbyCandidates) {

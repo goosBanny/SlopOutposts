@@ -19,8 +19,11 @@ import me.goosbanny.outposts.core.manager.ArenaManager;
 import me.goosbanny.outposts.core.manager.SpatialGridManager;
 import me.goosbanny.outposts.core.anticheese.OutpostWarpProtectionListener;
 import me.goosbanny.outposts.core.multipliers.MultiplierListener;
+import java.util.Set;
+import java.util.UUID;
 import me.goosbanny.outposts.core.schedule.ScheduleManager;
 import me.goosbanny.outposts.core.scheduler.FoliaCompatScheduler;
+import me.goosbanny.outposts.core.scheduler.OutpostsAsyncWorker;
 import me.goosbanny.outposts.hook.placeholder.OutpostsPlaceholderExpansion;
 import me.goosbanny.outposts.hook.shop.ShopGUIPlusHookListener;
 import me.goosbanny.outposts.hook.team.TeamHookManager;
@@ -62,7 +65,8 @@ public final class Outposts extends JavaPlugin {
     private OutpostWandListener wandListener;
     private SystemDoctor systemDoctor;
     private OutpostWarpProtectionListener warpProtectionListener;
-    private FoliaCompatScheduler.TaskHandle visualTelemetryTask;
+    private OutpostsAsyncWorker asyncWorker;
+    private FoliaCompatScheduler.TaskHandle displayTask;
 
     public static Outposts getInstance() {
         return instance;
@@ -80,6 +84,7 @@ public final class Outposts extends JavaPlugin {
 
         // 1. Schedulers & Configuration & Localization
         this.scheduler = new FoliaCompatScheduler(this);
+        this.asyncWorker = new OutpostsAsyncWorker();
         this.configManager = new ConfigManager(this);
         configManager.loadConfig();
 
@@ -192,9 +197,9 @@ public final class Outposts extends JavaPlugin {
             }
         }, this);
 
-        // 11. Start Game Loop & Visual Telemetry Loop
+        // 11. Start Game Loop & Display Loop
         arenaManager.startTicking(configManager.getEngineTickFrequency());
-        startVisualTelemetryLoop();
+        startDisplayLoop();
 
         long elapsed = System.currentTimeMillis() - startMillis;
         getLogger().info("Successfully loaded " + arenaManager.getArenas().size() + " outpost arenas in " + elapsed + "ms!");
@@ -204,9 +209,13 @@ public final class Outposts extends JavaPlugin {
     public void onDisable() {
         getLogger().info("Shutting down Outposts territory engine...");
 
-        if (visualTelemetryTask != null) {
-            visualTelemetryTask.cancel();
-            visualTelemetryTask = null;
+        if (displayTask != null) {
+            displayTask.cancel();
+            displayTask = null;
+        }
+
+        if (asyncWorker != null) {
+            asyncWorker.shutdown();
         }
 
         if (bossBarManager != null) {
@@ -225,16 +234,30 @@ public final class Outposts extends JavaPlugin {
         getLogger().info("Outposts safely disabled.");
     }
 
-    private void startVisualTelemetryLoop() {
+    private void startDisplayLoop() {
         long period = Math.max(1L, configManager.getTelemetryTickFrequency());
-        visualTelemetryTask = scheduler.runGlobalTimer(period, period, handle -> {
-            if (scheduleManager != null) {
-                try {
-                    scheduleManager.tick();
-                } catch (Exception e) {
-                    getLogger().warning("[Schedules] Error during schedule tick: " + e.getMessage());
+        displayTask = scheduler.runGlobalTimer(period, period, handle -> {
+            // Offload schedule ticks and actionbars completely to single async worker
+            asyncWorker.execute(() -> {
+                if (scheduleManager != null) {
+                    try {
+                        scheduleManager.tick();
+                    } catch (Exception e) {
+                        getLogger().warning("[Schedules] Error during schedule tick: " + e.getMessage());
+                    }
                 }
-            }
+
+                for (OutpostArena arena : arenaManager.getArenas()) {
+                    if (!arena.isActive()) {
+                        actionBarManager.clearArena(arena.getId());
+                        continue;
+                    }
+                    try {
+                        actionBarManager.renderTelemetry(arena);
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
 
             for (OutpostArena arena : arenaManager.getArenas()) {
                 if (!arena.isActive()) {
@@ -242,19 +265,19 @@ public final class Outposts extends JavaPlugin {
                     continue;
                 }
                 try {
-                    if (FoliaCompatScheduler.isFolia()) {
-                        Location center = arena.getCenterLocation();
-                        if (center != null && center.getWorld() != null) {
+                    Location center = arena.getCenterLocation();
+                    if (center != null && center.getWorld() != null) {
+                        if (FoliaCompatScheduler.isFolia()) {
                             scheduler.runAtLocation(center, () -> {
-                                bossBarManager.updateArenaBar(arena);
-                                actionBarManager.renderTelemetry(arena);
+                                Set<UUID> nearby = bossBarManager.findNearbyPlayerUuids(arena);
+                                asyncWorker.execute(() -> bossBarManager.updateArenaBar(arena, nearby));
                                 perimeterRenderer.renderPerimeter(arena);
                             });
+                        } else {
+                            Set<UUID> nearby = bossBarManager.findNearbyPlayerUuids(arena);
+                            asyncWorker.execute(() -> bossBarManager.updateArenaBar(arena, nearby));
+                            perimeterRenderer.renderPerimeter(arena);
                         }
-                    } else {
-                        bossBarManager.updateArenaBar(arena);
-                        actionBarManager.renderTelemetry(arena);
-                        perimeterRenderer.renderPerimeter(arena);
                     }
                 } catch (Exception ignored) {
                 }
@@ -361,4 +384,5 @@ public final class Outposts extends JavaPlugin {
     public LangManager getLangManager() { return langManager; }
     public ScheduleManager getScheduleManager() { return scheduleManager; }
     public OutpostWarpProtectionListener getWarpProtectionListener() { return warpProtectionListener; }
+    public OutpostsAsyncWorker getAsyncWorker() { return asyncWorker; }
 }

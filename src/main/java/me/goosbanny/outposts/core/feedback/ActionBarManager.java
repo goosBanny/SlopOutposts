@@ -14,6 +14,7 @@ import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -118,46 +119,22 @@ public class ActionBarManager {
         tokens.put("capping", capping != null ? capping : langManager.getPlaceholder("no_capper", "None"));
         tokens.put("warmup", String.valueOf(arena.getActivationGraceRemainingSeconds()));
         if (arena.getCurrentRegion() != null) {
-            tokens.put("region", net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().serialize(arena.getCurrentRegion().getDisplayName()));
+            tokens.put("region", arena.getCurrentRegion().getRawName());
         }
 
         Component comp = langManager.get("telemetry.actionbar", arena, tokens);
 
-        // Manage viewers safely via world.getPlayers() (Folia safe, zero cross-region chunk access)
         Set<UUID> currentRecipients = new HashSet<>();
-        List<Player> candidates = new ArrayList<>();
-        try {
-            BoundingBox box = new BoundingBox(
-                    arena.getMinX(), arena.getMinY(), arena.getMinZ(),
-                    arena.getMaxX() + 1.0, arena.getMaxY() + 1.0, arena.getMaxZ() + 1.0
-            );
-            for (Entity e : world.getNearbyEntities(box, entity -> entity instanceof Player)) {
-                if (e instanceof Player p && p.isOnline() && !p.isDead()) {
-                    if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
-                        continue;
-                    }
-                    candidates.add(p);
-                }
-            }
-        } catch (Exception e) {
-            for (Player p : world.getPlayers()) {
-                if (p.isOnline() && !p.isDead()) {
-                    if (FoliaCompatScheduler.isFolia()
-                            && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
-                        continue;
-                    }
-                    Location loc = p.getLocation();
-                    if (loc.getWorld() != null && loc.getWorld().equals(world)
-                            && arena.isWithinBounds(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
-                        candidates.add(p);
-                    }
-                }
-            }
-        }
+        Set<UUID> candidates = arena instanceof DefaultOutpostArena def
+                ? def.getPlayersInZone()
+                : Collections.emptySet();
 
-        for (Player p : candidates) {
-            p.sendActionBar(comp);
-            currentRecipients.add(p.getUniqueId());
+        for (UUID uid : candidates) {
+            Player p = Bukkit.getPlayer(uid);
+            if (p != null && p.isOnline()) {
+                p.sendActionBar(comp);
+                currentRecipients.add(uid);
+            }
         }
 
         // Send empty action bar immediately to players who left the capture zone

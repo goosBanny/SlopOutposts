@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,9 +49,61 @@ public class BossBarManager {
     }
 
     /**
-     * Updates the BossBar display and viewer subscription for an arena.
+     * Updates the BossBar display and viewer subscription for an arena using synchronous location scan.
      */
     public void updateArenaBar(@NotNull OutpostArena arena) {
+        updateArenaBar(arena, findNearbyPlayerUuids(arena));
+    }
+
+    /**
+     * Finds UUIDs of all players within boss bar render distance of the outpost center.
+     * Designed to be called safely on the world region/main thread.
+     */
+    @NotNull
+    public Set<UUID> findNearbyPlayerUuids(@NotNull OutpostArena arena) {
+        Location center = arena.getCenterLocation();
+        if (center == null || center.getWorld() == null) {
+            return Collections.emptySet();
+        }
+
+        double rSquared = (double) renderDistanceBlocks * renderDistanceBlocks;
+        Set<UUID> nearby = new HashSet<>();
+        List<Player> candidates = new ArrayList<>();
+        try {
+            for (Entity e : center.getWorld().getNearbyEntities(center, renderDistanceBlocks, renderDistanceBlocks, renderDistanceBlocks, entity -> entity instanceof Player)) {
+                if (e instanceof Player p && p.isOnline() && !p.isDead()) {
+                    if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
+                        continue;
+                    }
+                    candidates.add(p);
+                }
+            }
+        } catch (Exception e) {
+            for (Player p : center.getWorld().getPlayers()) {
+                if (p.isOnline() && !p.isDead()) {
+                    if (FoliaCompatScheduler.isFolia()
+                            && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
+                        continue;
+                    }
+                    candidates.add(p);
+                }
+            }
+        }
+
+        for (Player p : candidates) {
+            Location loc = p.getLocation();
+            if (loc.getWorld() != null && loc.getWorld().equals(center.getWorld()) && loc.distanceSquared(center) <= rSquared) {
+                nearby.add(p.getUniqueId());
+            }
+        }
+        return nearby;
+    }
+
+    /**
+     * Updates the BossBar display and viewer subscriptions using pre-resolved nearby viewer UUIDs.
+     * 100% thread-safe to run asynchronously on OutpostsAsyncWorker.
+     */
+    public void updateArenaBar(@NotNull OutpostArena arena, @NotNull Set<UUID> nearbyPlayers) {
         if (!arena.isActive()) {
             removeArenaBar(arena.getId());
             return;
@@ -68,7 +121,7 @@ public class BossBarManager {
         bar.progress(progress);
 
         Map<String, String> tokens = new HashMap<>();
-        tokens.put("name", miniMessage.serialize(arena.getDisplayName()));
+        tokens.put("name", arena.getSerializedDisplayName());
         tokens.put("progress", String.format("%.1f", arena.getProgress()));
 
         String controllerDisplay = resolveParticipantName(arena.getControllerTeamName(), arena.getControllerTeamId());
@@ -89,7 +142,7 @@ public class BossBarManager {
         tokens.put("seconds", String.valueOf(arena.getLockoutRemainingSeconds()));
         tokens.put("warmup", String.valueOf(arena.getActivationGraceRemainingSeconds()));
         if (arena.getCurrentRegion() != null) {
-            tokens.put("region", miniMessage.serialize(arena.getCurrentRegion().getDisplayName()));
+            tokens.put("region", arena.getCurrentRegion().getRawName());
         }
 
         // Determine Chromatic Styling & String Suppression
@@ -124,44 +177,14 @@ public class BossBarManager {
         bar.color(barColor);
         bar.name(langManager.get(langPath, arena, tokens));
 
-        // Manage nearby viewers safely via world.getPlayers() (Folia safe, zero cross-region chunk access)
+        // Manage viewers
         Set<UUID> currentViewers = viewersPerArena.computeIfAbsent(arena.getId(), k -> ConcurrentHashMap.newKeySet());
-        Set<UUID> nearbyPlayers = NEARBY_PLAYERS_BUFFER.get();
-        nearbyPlayers.clear();
-
-        Location center = arena.getCenterLocation();
-        if (center != null && center.getWorld() != null) {
-            double rSquared = (double) renderDistanceBlocks * renderDistanceBlocks;
-            List<Player> candidates = new ArrayList<>();
-            try {
-                for (Entity e : center.getWorld().getNearbyEntities(center, renderDistanceBlocks, renderDistanceBlocks, renderDistanceBlocks, entity -> entity instanceof Player)) {
-                    if (e instanceof Player p && p.isOnline() && !p.isDead()) {
-                        if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
-                            continue;
-                        }
-                        candidates.add(p);
-                    }
-                }
-            } catch (Exception e) {
-                for (Player p : center.getWorld().getPlayers()) {
-                    if (p.isOnline() && !p.isDead()) {
-                        if (FoliaCompatScheduler.isFolia()
-                                && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
-                            continue;
-                        }
-                        candidates.add(p);
-                    }
-                }
-            }
-
-            for (Player p : candidates) {
-                Location loc = p.getLocation();
-                if (loc.getWorld() != null && loc.getWorld().equals(center.getWorld()) && loc.distanceSquared(center) <= rSquared) {
-                    nearbyPlayers.add(p.getUniqueId());
-                    if (!currentViewers.contains(p.getUniqueId())) {
-                        p.showBossBar(bar);
-                        currentViewers.add(p.getUniqueId());
-                    }
+        for (UUID uuid : nearbyPlayers) {
+            if (!currentViewers.contains(uuid)) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null && p.isOnline()) {
+                    p.showBossBar(bar);
+                    currentViewers.add(uuid);
                 }
             }
         }

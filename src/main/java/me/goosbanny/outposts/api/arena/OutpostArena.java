@@ -22,6 +22,13 @@ public interface OutpostArena extends ArenaDescriptor {
     ArenaView createSnapshot();
 
     /**
+     * Pre-serialized MiniMessage string of the arena display name for zero-allocation HUD rendering.
+     */
+    default String getSerializedDisplayName() {
+        return net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().serialize(getDisplayName());
+    }
+
+    /**
      * Executes one tick cycle of the game loop: spatial evaluation, capture mechanics,
      * hysteresis validation, and telemetry broadcasts.
      */

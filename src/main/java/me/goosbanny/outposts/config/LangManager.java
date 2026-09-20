@@ -21,6 +21,7 @@ public class LangManager {
 
     private final Plugin plugin;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private final Map<String, Component> staticComponentCache = new java.util.concurrent.ConcurrentHashMap<>();
     private YamlConfiguration langConfig;
     private String prefix = "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> ";
 
@@ -52,6 +53,7 @@ public class LangManager {
 
         this.langConfig = YamlConfiguration.loadConfiguration(file);
         this.prefix = langConfig.getString("prefix", "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> ");
+        this.staticComponentCache.clear();
     }
 
     public String getPrefix() {
@@ -86,16 +88,25 @@ public class LangManager {
 
     @NotNull
     public Component get(@NotNull String path) {
-        return get(path, Collections.emptyMap());
+        return staticComponentCache.computeIfAbsent(path, p -> {
+            String template = getRaw(p, p);
+            return miniMessage.deserialize(formatString(template, Collections.emptyMap()));
+        });
     }
 
     @NotNull
     public Component get(@NotNull String path, @NotNull Map<String, String> replacements) {
+        if (replacements.isEmpty()) {
+            return get(path);
+        }
         return get(path, (OutpostArena) null, replacements);
     }
 
     @NotNull
     public Component get(@NotNull String path, @Nullable OutpostArena arena, @NotNull Map<String, String> replacements) {
+        if (replacements.isEmpty() && arena == null) {
+            return get(path);
+        }
         String template = getRaw(path, arena, path);
         String formatted = formatString(template, replacements);
         return miniMessage.deserialize(formatted);

@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -43,10 +44,24 @@ public class OutpostWandListener implements Listener {
     private final NamespacedKey wandKey;
     private final LangManager langManager;
     private final Map<UUID, Selection> playerSelections = new ConcurrentHashMap<>();
+    private final Set<UUID> activeWandUsers = ConcurrentHashMap.newKeySet();
 
     public OutpostWandListener(@NotNull Plugin plugin, @NotNull LangManager langManager) {
         this.wandKey = new NamespacedKey(plugin, WAND_TAG);
         this.langManager = langManager;
+    }
+
+    public void addWandUser(@NotNull UUID uuid) {
+        activeWandUsers.add(uuid);
+    }
+
+    public void removeWandUser(@NotNull UUID uuid) {
+        activeWandUsers.remove(uuid);
+        clearSelection(uuid);
+    }
+
+    public boolean isWandUser(@NotNull UUID uuid) {
+        return activeWandUsers.contains(uuid);
     }
 
     public ItemStack createWand() {
@@ -89,10 +104,14 @@ public class OutpostWandListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
+        if (!activeWandUsers.contains(player.getUniqueId())) return;
+
         ItemStack item = event.getItem();
+        if (item == null || item.getType() != Material.BLAZE_ROD) return;
         if (!isWand(item)) return;
 
         if (!player.hasPermission("outposts.admin")) {
+            activeWandUsers.remove(player.getUniqueId());
             return;
         }
 
@@ -113,11 +132,18 @@ public class OutpostWandListener implements Listener {
         }
     }
 
+    @EventHandler
+    public void onPlayerQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        activeWandUsers.remove(event.getPlayer().getUniqueId());
+        playerSelections.remove(event.getPlayer().getUniqueId());
+    }
+
     /**
      * Renders live particle outline for active selections.
      * Enforces a 30-second inactivity timeout.
      */
     public void tickVisuals() {
+        if (activeWandUsers.isEmpty() || playerSelections.isEmpty()) return;
         Particle.DustOptions dust = new Particle.DustOptions(Color.fromRGB(255, 105, 180), 1.0f);
         Iterator<Map.Entry<UUID, Selection>> it = playerSelections.entrySet().iterator();
         while (it.hasNext()) {

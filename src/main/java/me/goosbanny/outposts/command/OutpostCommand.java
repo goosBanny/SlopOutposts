@@ -165,6 +165,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
         }
 
         player.getInventory().addItem(plugin.getWandListener().createWand());
+        plugin.getWandListener().addWandUser(player.getUniqueId());
         player.sendMessage(langManager.get("commands.wand_given"));
     }
 
@@ -207,7 +208,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
                 player.getLocation()
         );
 
-        plugin.getWandListener().clearSelection(player.getUniqueId());
+        plugin.getWandListener().removeWandUser(player.getUniqueId());
         File file = new File(plugin.getDataFolder(), "outposts/" + id + ".yml");
         File templateFile = new File(plugin.getDataFolder(), "outposts/default.yml");
 
@@ -449,7 +450,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
                         new ArenaRegion(regionId, name, weight, geom);
                 arena.getDynamicLocationConfig().setEnabled(true);
                 arena.getDynamicLocationConfig().addRegion(region);
-                plugin.getWandListener().clearSelection(player.getUniqueId());
+                plugin.getWandListener().removeWandUser(player.getUniqueId());
 
                 File file = new File(plugin.getDataFolder(), "outposts/" + arena.getId() + ".yml");
                 try {
