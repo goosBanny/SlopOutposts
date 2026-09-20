@@ -288,9 +288,10 @@ public final class Outposts extends JavaPlugin {
 
     private void extractDefaultOutposts() {
         File folder = new File(getDataFolder(), "outposts");
-        if (!folder.exists()) {
-            folder.mkdirs();
+        if (folder.exists()) {
+            return;
         }
+        folder.mkdirs();
         for (String fileName : List.of("south.yml", "default.yml")) {
             File targetFile = new File(folder, fileName);
             if (!targetFile.exists()) {
