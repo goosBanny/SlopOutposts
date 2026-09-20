@@ -1,0 +1,91 @@
+# ==============================================================================
+# Outposts (v1.0.0) — Localization & Language Configuration
+# All messages use MiniMessage formatting with modern hex colors and standard glyphs.
+# ==============================================================================
+
+# Global chat prefix prepended to all plugin communications
+# Brand Pink (#F07DB5) bold title followed by gray separator ▶
+prefix: "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> "
+
+# In-game command feedback, alerts, and operational messages
+commands:
+  no_permission: "<prefix><#E13148>You do not have permission to execute this command.</#E13148>"
+  player_only: "<prefix><#E13148>This command can only be executed by players in-game.</#E13148>"
+  unknown_subcommand: "<prefix><#E13148>Unknown subcommand. Use <white>/outpost help</white> for available commands.</#E13148>"
+  outpost_not_found: "<prefix><#E13148>Outpost arena '<white>%id%</white>' could not be found.</#E13148>"
+  already_exists: "<prefix><#E13148>An outpost with ID '<white>%id%</white>' already exists.</#E13148>"
+  created: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' successfully created and initialized!</#00F878>"
+  deleted: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' has been permanently removed.</#00F878>"
+  warp_set: "<prefix><#00F878>✔ Warp location for '<white>%id%</white>' set to your current position!</#00F878>"
+  teleported: "<prefix><#00F878>✔ Teleported to outpost '<white>%id%</white>'!</#00F878>"
+  no_warp: "<prefix><#E13148>No valid warp or spawn location found for outpost '<white>%id%</white>'.</#E13148>"
+  reloaded: "<prefix><#00F878>✔ Configurations and arenas reloaded successfully without desyncing state!</#00F878>"
+  forcestarted: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' has been force started!</#00F878>"
+  forcestopped: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' has been reset to neutral.</#00F878>"
+  wand_given: "<prefix><#00F878>✔ Setup wand added to your inventory! Left/right click blocks to set corners.</#00F878>"
+  wand_pos1: "<prefix><#CECECE>Corner 1 set to <#00B8FF>%x%, %y%, %z%</#00B8FF></#CECECE>"
+  wand_pos2: "<prefix><#CECECE>Corner 2 set to <#00B8FF>%x%, %y%, %z%</#00B8FF></#CECECE>"
+  wand_incomplete: "<prefix><#E13148>You must set both Corner 1 and Corner 2 with <white>/outpost wand</white> first!</#E13148>"
+  blocked_command: "<prefix><#E13148>✘ You cannot use that command while inside an outpost zone!</#E13148>"
+  blocked_block_break: "<prefix><#E13148>✘ Block breaking is restricted inside active outposts!</#E13148>"
+  blocked_block_place: "<prefix><#E13148>✘ Block placement is restricted inside active outposts!</#E13148>"
+  blocked_chorus: "<prefix><#E13148>✘ Chorus fruit teleports are disabled inside outpost zones!</#E13148>"
+  max_outposts_reached: "<prefix><#E13148>✘ Your team has already reached the maximum allowed outpost control limit!</#E13148>"
+  capture_cooldown: "<prefix><#E13148>✘ Your team captured an outpost recently! Please wait %seconds%s before capturing another.</#E13148>"
+  region_added: "<prefix><#00F878>✔ Dynamic region '<white>%region%</white>' added to outpost '<white>%arena%</white>'!</#00F878>"
+  region_removed: "<prefix><#00F878>✔ Dynamic region '<white>%region%</white>' removed from outpost '<white>%arena%</white>'.</#00F878>"
+  region_weight_set: "<prefix><#00F878>✔ Weight for region '<white>%region%</white>' set to <#FF6C00>%weight%</#FF6C00> on outpost '<white>%arena%</white>'.</#00F878>"
+  region_shifted: "<prefix><#00F878>✔ Relocation of outpost '<white>%arena%</white>' triggered successfully!</#00F878>"
+  compass_pointed: "<prefix><#00F878>✔ Compass needle now pointing to outpost '<white>%id%</white>' at <#00B8FF>%coords%</#00B8FF>!</#00F878>"
+  spawn_protection_applied: "<prefix><#00F878>🛡 You have <#FFFF55>%seconds%s</#FFFF55> of temporary spawn protection!</#00F878>"
+  spawn_protection_expired: "<prefix><#FFFF55>⚠ Your spawn protection has expired due to combat activity.</#FFFF55>"
+  list_header: "<prefix><#FDC05C>Registered Outposts <dark_gray>(<#FF6C00>%count%<dark_gray>):</#FDC05C>"
+  list_entry: "<gray>● <white>%id%</white> %state% <dark_gray>| <#CECECE>Progress: <#FDC05C>%progress%%</#FDC05C> <dark_gray>| <#CECECE>Team: <#98fc98>%team%</#98fc98></gray>"
+  list_empty: "<prefix><#CECECE>No outpost arenas are currently registered on the server.</#CECECE>"
+
+# Real-time visual telemetry (ActionBars and BossBars)
+telemetry:
+  actionbar: "%state% <dark_gray>| <white>%progress%%</white> %progress_bar% <dark_gray>| <#FF6C00>%cappers% <#CECECE>competing</#CECECE>"
+  actionbar_states:
+    warmup: "<#FFFF55>● WARMUP</#FFFF55> <#CECECE>(%warmup%s)</#CECECE>"
+    locked: "<#00B8FF>● CAPTURED</#00B8FF> <#CECECE>(%seconds%s)</#CECECE>"
+    contested: "<#E13148>⚔ CONTESTED</#E13148>"
+    controlled: "<#00F878>🛡 CONTROLLED</#00F878>"
+    capturing: "<#FDC05C>▶ CAPTURING</#FDC05C>"
+    neutral: "<#CECECE>○ NEUTRAL</#CECECE>"
+  bossbar:
+    warmup: "<#FFFF55>● Warmup</#FFFF55> <gray>▶</gray> <white>%name%</white> <dark_gray>(<#FFFF55>%warmup%s<dark_gray>)</dark_gray>"
+    locked: "<#00B8FF>🛡 Captured</#00B8FF> <gray>▶</gray> <white>%name%</white> <dark_gray>• <#98fc98>%team%</#98fc98>"
+    contested: "<#E13148>⚔ Contested</#E13148> <gray>▶</gray> <white>%name%</white> <dark_gray>(<#FF6C00>%cappers% fighting<dark_gray>)</dark_gray> <dark_gray>• <#FFFF55>%progress%%</#FFFF55>"
+    controlled: "<#00F878>🛡 Controlled</#00F878> <gray>▶</gray> <white>%name%</white> <dark_gray>• <#98fc98>%team%</#98fc98> <dark_gray>(<#00F878>%progress%%</#00F878>)</dark_gray>"
+    capturing: "<#FDC05C>▶ Capturing</#FDC05C> <gray>▶</gray> <white>%name%</white> <dark_gray>• <#98fc98>%capping%</#98fc98> <dark_gray>(<#FDC05C>%progress%%</#FDC05C>)</dark_gray>"
+    neutral: "<#CECECE>○ Neutral</#CECECE> <gray>▶</gray> <white>%name%</white> <dark_gray>(<#CECECE>0%</#CECECE>)</dark_gray>"
+
+# Milestone progress & scheduled event broadcasts
+broadcasts:
+  milestone: "<prefix><white>The <#98fc98>%team%</#98fc98> team reached <#FF6C00>%milestone%%</#FF6C00> progress on <white>%name%</white>!</white>"
+  milestone_solo: "<prefix><white>Player <#98fc98>%player%</#98fc98> reached <#FF6C00>%milestone%%</#FF6C00> progress on <white>%name%</white>!</white>"
+  event_started: "<prefix><white>The <#F07DB5>%name%</#F07DB5> territory event has officially <#00F878>OPENED</#00F878> for capture!</white>"
+  event_overtime: "<prefix><white>The <#F07DB5>%name%</#F07DB5> event is contested and entered <#E13148>OVERTIME</#E13148>!</white>"
+  event_concluded: "<prefix><white>The <#F07DB5>%name%</#F07DB5> event has <#FFFF55>CONCLUDED</#FFFF55>! Final Controller: <#00F878>%winner%</#00F878></white>"
+  shifted: "<prefix><white>The <#F07DB5>%name%</#F07DB5> outpost shifted to <#FDC05C>%region%</#FDC05C> <dark_gray>(<#00B8FF>%coords%</#00B8FF>)</dark_gray>!</white>"
+  shift_warning: "<prefix><white>The <#F07DB5>%name%</#F07DB5> outpost will relocate in <#FFFF55>%seconds%s</#FFFF55>!</white>"
+
+# PlaceholderAPI Custom Fallback & Status Resolution Values
+placeholders:
+  none: "None"
+  no_controller: "No Controller"
+  no_capper: "None"
+  missing_arena: "---"
+  coords_format: "%x%, %y%, %z%"
+  boolean_true: "true"
+  boolean_false: "false"
+  states:
+    neutral: "<#CECECE>Neutral</#CECECE>"
+    capturing: "<#FDC05C>Capturing</#FDC05C>"
+    controlled: "<#00F878>Controlled</#00F878>"
+    contested: "<#E13148>Contested</#E13148>"
+    locked: "<#00B8FF>Captured</#00B8FF>"
+    overtime: "<#E13148>Overtime</#E13148>"
+    inactive: "<dark_gray>Inactive</dark_gray>"
+    warmup: "<#FFFF55>Warmup</#FFFF55>"

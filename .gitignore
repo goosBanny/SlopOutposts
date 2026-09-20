@@ -1,0 +1,35 @@
+# Gradle build and cache
+.gradle/
+build/
+out/
+
+# IDE configurations
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# Minecraft / Paper test server artifacts
+run/
+plugins/
+logs/
+world/
+world_nether/
+world_the_end/
+eula.txt
+server.properties
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Specifications and private notes
+spec/

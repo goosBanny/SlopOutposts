@@ -1,0 +1,13 @@
+schedules:
+  weekend_war:
+    arena: "south"
+    cron: "0 18 * * 6,7" # Saturday and Sunday at 18:00 UTC
+    duration_minutes: 120
+    overtime:
+      enabled: true
+      max_overtime_minutes: 15
+    broadcasts:
+      - minutes_before: 15
+        message: "<prefix> <name> opens in <yellow>15m</yellow>!"
+      - minutes_before: 1
+        message: "<prefix> <name> opens in <red><bold>60s</bold></red>!"

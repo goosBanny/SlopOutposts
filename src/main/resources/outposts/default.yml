@@ -1,0 +1,330 @@
+# ==============================================================================
+# Outposts (v1.0.0) — Exhaustive Default Arena Configuration Template
+# Template Identifier: default
+# Exhaustive configuration template with comprehensive inline architectural documentation.
+# ==============================================================================
+
+# Unique alphanumeric identifier for this outpost arena.
+# Value Type: String (Alphanumeric, lowercase recommended). Must match filename: <id>.yml.
+id: "default"
+
+# Display metadata and administrative inventory visual representation.
+meta:
+  # Display name parsed via Adventure MiniMessage formatting.
+  # Value Type: MiniMessage string.
+  # Displayed in chat announcements, GUI menus, and scoreboards.
+  name: "<#F07DB5><bold>Default Outpost</bold></#F07DB5>"
+
+  # Material identifier for the menu/GUI icon.
+  # Value Type: Bukkit Material enum name (e.g. NETHERITE_SWORD, BEACON, IRON_BLOCK).
+  icon: "NETHERITE_SWORD"
+
+# 3D Cuboid Spatial Geometry and Teleportation Coordinates.
+geometry:
+  # Target Bukkit World name where the capture zone exists.
+  # Value Type: String (e.g. "world", "world_nether", "world_the_end").
+  world: "world"
+
+  # Live particle bounding box rendering.
+  # Value Type: Boolean (true = live RGB perimeter dust outlines rendered along corners and edges).
+  # Default: false (recommended for optimal performance on large servers).
+  bounding_particles: false
+
+  # Minimum inclusive 3D block coordinate bounds of the capture zone.
+  # Units: Block Coordinates (Integers).
+  min:
+    x: 0
+    y: 64
+    z: 0
+
+  # Maximum inclusive 3D block coordinate bounds of the capture zone.
+  # Units: Block Coordinates (Integers).
+  max:
+    x: 10
+    y: 74
+    z: 10
+
+  # Warp / Teleportation landing position for /outpost warp <id>.
+  # Units: Floating-point block coordinates + yaw / pitch orientation degrees.
+  warp:
+    x: 5.5
+    y: 65.0
+    z: 5.5
+    yaw: 0.0
+    pitch: 0.0
+
+# Capture Mechanics, Timing, and Engine Lifecycle Parameters.
+mechanics:
+  # Global master toggle for this arena's capture state machine.
+  # Value Type: Boolean (true = captures processed; false = arena locked).
+  enabled: true
+
+  # Auto-start toggle:
+  # Value Type: Boolean (true = starts active immediately on load; false = inactive until scheduled or force-started).
+  auto_start: false
+
+  # Occupancy and Contention Participant Resolution:
+  # Value Type: String Enum:
+  #   - "TEAM": Outpost is owned and captured by factions/teams (Factions, BetterTeams, Towny, ZelTeams).
+  #             Teammates accelerate capture speed; mutual allies avoid contesting.
+  #   - "SOLO": Free-for-all mode. Outpost is captured and owned by an individual player UUID.
+  occupancy_mode: "TEAM"
+
+  # Capture State Machine Model Engine:
+  # Value Type: String Enum:
+  #   - "STANDARD_HILL":       Classic King-of-the-Hill (0% -> 100%). Neutralization-First lifecycle.
+  #                            Invaders must knock defender progress down to 0% before advancing capture bar.
+  #   - "TUG_OF_WAR":          Symmetrical 50% midpoint anchor pulled toward extremes based on player ratio.
+  #   - "TICKET_ACCUMULATION": Holding team generates points/tickets over time up to score cap (100%).
+  #   - "PASSIVE_DECAY":       Standard capture curve with aggressive decay bleed whenever unoccupied.
+  mode: "STANDARD_HILL"
+
+  # Capture Speed and Progression Mathematics.
+  speed:
+    # Base percentage added per second when capturing (0% -> 100%).
+    # Value Type: Double (0.1 to 100.0). Units: Percent per second.
+    # Note: 2.5% per second results in a 40-second baseline capture time for 1 player.
+    percent_per_second: 2.5
+
+    # Base percentage deducted per second when invading and knocking down enemy progress (100% -> 0%).
+    # Value Type: Double (0.1 to 100.0). Units: Percent per second.
+    uncapture_percent_per_second: 2.5
+
+    # Additional bonus percentage added per extra teammate standing on the capture pad.
+    # Value Type: Double (>= 0.0). Units: Percent per second per player.
+    scaling_per_member: 0.5
+
+    # Maximum number of players counted toward capture speed calculation.
+    # Value Type: Integer (>= 1). Caps stacking speed acceleration.
+    max_cappers_counted: 4
+
+  # Capture Behavior & Fair Play Rules
+  behavior:
+    # If true, capture progress completely stops moving while opposing teams are both on the pad.
+    freeze_when_contested: true
+
+    # When do the defenders lose their control buffs and territory multipliers?
+    # - 100.0: Defenders lose control the instant an enemy knocks progress below 100%.
+    # - 0.0: Defenders keep control and rewards until enemies knock progress all the way to 0%.
+    # Example: If set to 100.0, any enemy stepping on the pad immediately disrupts the defending team's hold.
+    lose_control_threshold: 100.0
+
+    # How many seconds of protection the winning team gets right after capturing.
+    # During this time, the outpost cannot be contested or capped by other teams.
+    lockout_seconds: 10
+
+    # Grace delay (in seconds) before an invading team can start knocking down defender progress.
+    # Gives the defending team a moment to react when an enemy first enters the pad.
+    knock_delay_seconds: 5
+
+    # Passive decay: What happens when the pad is empty (abandoned)?
+    passive_decay:
+      # If true, empty or partially capped pads slowly bleed progress down to 0%.
+      enabled: true
+      # How many percent is lost per second when no one is on the pad.
+      rate_per_second: 2.5
+
+    # Anti-flicker buffer (in percent):
+    # Prevents boss bars and scoreboards from flickering when enemies step on and off the edge of the pad.
+    # Example: If set to 2.0, defenders won't start losing control until enemies knock progress below 98.0%.
+    # This stops quick 1-tick edge taps (like 99.9%) from spamming notifications or resetting bars.
+    hysteresis_buffer_percent: 2.0
+
+    # Cooldown (in seconds) required before state changes trigger chat broadcasts.
+    # Example: If set to 1.0, players must contest or leave the pad for at least 1 full second
+    # before a "Contested" or "Uncontested" chat broadcast is triggered. Prevents chat spam.
+    state_change_cooldown_seconds: 1.0
+
+  # Anti-Cheese & Fair Play Rules
+  anti_cheese:
+    # Requires direct line of sight to the pad center (stops capping from underground or behind walls).
+    line_of_sight: true
+
+    # What happens when a capping player takes combat damage:
+    # - NONE: Nothing, capture keeps going.
+    # - PAUSE_CAPTURE: Capture pauses for a few seconds so players must fight back.
+    # - RESET_CAPTURE: Resets progress back to 0% immediately.
+    combat_damage_policy: "PAUSE_CAPTURE"
+
+    # How many seconds capture pauses after taking damage (if PAUSE_CAPTURE is used).
+    combat_pause_seconds: 5
+
+    # Disallows players in Essentials / CMI / Paper invulnerable God Mode from capturing.
+    # Value Type: Boolean.
+    disallow_godmode: true
+
+    # Disallows players with active creative/survival flight enabled from capturing.
+    # Value Type: Boolean.
+    disallow_flying: true
+
+    # Disallows players actively gliding with Elytra wings from capturing.
+    # Value Type: Boolean.
+    disallow_elytra: true
+
+    # Disallows vanished administrators (Essentials, SuperVanish, PremiumVanish) from capturing.
+    # Value Type: Boolean.
+    disallow_vanished: true
+
+    # Disallows teams from using unallied secondary factions to artificially stall captures.
+    # Value Type: Boolean.
+    disallow_allied_stall: true
+
+# Economy, Drops, and Combat Multipliers (Active while controlled).
+multipliers:
+  # Mob Spawner Speed Multiplier (1.5 = spawners spawn mobs 50% faster in faction territory).
+  # Value Type: Double (>= 1.0).
+  spawner_rate: 1.5
+
+  # Hostile Mob Item Drop Multiplier (1.75 = 75% more item drops from killed monsters).
+  # Value Type: Double (>= 1.0).
+  mob_drop_rate: 1.75
+
+  # Experience Orb Drop Multiplier (2.0 = 2x experience orbs dropped).
+  # Value Type: Double (>= 1.0).
+  exp_drop_rate: 2.0
+
+  # PvP Outgoing Damage Multiplier (1.10 = 10% bonus damage dealt in player combat).
+  # Value Type: Double (>= 1.0).
+  damage_rate: 1.10
+
+  # ShopGUI+ Sell Value Multiplier (1.35 = 35% higher sale prices when selling items in shop).
+  # Value Type: Double (>= 1.0).
+  shopgui_sell_rate: 1.35
+
+# Extensible Trigger-Condition-Action (TCA) Event Pipeline.
+actions:
+  # Actions executed immediately when an outpost is successfully captured (progress reaches 100%).
+  on_capture:
+    - type: "BROADCAST"
+      message: "<prefix><white>The <#98fc98><team></#98fc98> faction has captured <#F07DB5><name></#F07DB5>!</white>"
+    - type: "COMMAND_CONSOLE_PER_PLAYER"
+      command: "eco give %player% 5000"
+    - type: "TEAM_BANK_DEPOSIT"
+      amount: 1000.0
+
+  # Actions executed immediately when the controlling team loses ownership (progress reaches 0%).
+  on_lost:
+    - type: "BROADCAST"
+      message: "<prefix><white>The <#98fc98><team></#98fc98> faction lost control of <#F07DB5><name></#F07DB5>!</white>"
+
+  # Actions executed when an opposing team contests the outpost capture pad.
+  on_contest:
+    - type: "TITLE"
+      title: "<#E13148><bold>OUTPOST UNDER ATTACK</bold></#E13148>"
+      subtitle: "<#CECECE>Enemy forces are contesting <#F07DB5><name></#F07DB5>!</#CECECE>"
+      target: "DEFENDING_TEAM"
+
+  # Periodic interval reward actions distributed to the controlling faction.
+  on_tick_reward:
+    # Interval between reward distributions. Units: Seconds.
+    interval_seconds: 30
+    actions:
+      - type: "COMMAND_CONSOLE_PER_PLAYER"
+        command: "eco give %player% 500"
+      - type: "TEAM_BANK_DEPOSIT"
+        amount: 250.0
+
+# Dynamic Changing Outpost Engine (Dynamic Relocation Across Multiple Predefined Regions).
+dynamic_locations:
+  # Master toggle for automatic dynamic relocation.
+  # Value Type: Boolean (true = outpost shifts locations; false = static location).
+  enabled: false
+
+  # Trigger Switch Mode:
+  # Value Type: String Enum:
+  #   - "INTERVAL":             Switches every switch_interval_seconds.
+  #   - "RANDOM_INTERVAL":      Switches randomly between min_interval_seconds and max_interval_seconds.
+  #   - "SCHEDULED_TIMESTAMPS": Switches at specific elapsed event seconds (e.g. 300, 600, 900).
+  #   - "ON_CAPTURE":           Switches immediately upon successful capture.
+  switch_mode: "INTERVAL"
+
+  # Fixed interval in seconds when switch_mode is INTERVAL.
+  # Value Type: Long (>= 10). Units: Seconds.
+  switch_interval_seconds: 300
+
+  # Minimum random interval when switch_mode is RANDOM_INTERVAL.
+  # Value Type: Long (>= 10). Units: Seconds.
+  min_interval_seconds: 180
+
+  # Maximum random interval when switch_mode is RANDOM_INTERVAL.
+  # Value Type: Long (> min_interval_seconds). Units: Seconds.
+  max_interval_seconds: 420
+
+  # List of elapsed schedule seconds when switch_mode is SCHEDULED_TIMESTAMPS.
+  # Value Type: List of Integers (Units: Seconds).
+  scheduled_timestamps: [ 300, 600, 900, 1200 ]
+
+  # Whether to also trigger a shift immediately upon outpost capture.
+  # Value Type: Boolean.
+  switch_on_capture: false
+
+  # Broadcast warning countdown milestones sent prior to shifting.
+  # Value Type: List of Integers (Units: Seconds).
+  warning_seconds: [ 60, 30, 10, 5, 3, 2, 1 ]
+
+  # Warmup Delay: Seconds after shifting before capture pad activates, giving players time to navigate.
+  # Value Type: Integer (>= 0). Units: Seconds.
+  activation_grace_seconds: 15
+
+  # Spawn Protection: Seconds of invulnerability granted to players upon warping or shifting.
+  # Value Type: Integer (>= 0). Units: Seconds.
+  warp_invincibility_seconds: 10
+
+  # State Transition Policy upon Relocation:
+  # Value Type: String Enum:
+  #   - "KEEP_PROGRESS":          Preserves existing capture percentage and controlling team.
+  #   - "RESET_PROGRESS":         Instantly resets progress to 0% and clears controller.
+  #   - "RESET_IF_UNCONTROLLED":  Keeps controller if held, but resets if neutral or capturing.
+  state_transition: "KEEP_PROGRESS"
+
+  # Player Transition Policy upon Relocation:
+  # Value Type: String Enum:
+  #   - "NONE":            Players remain where they were.
+  #   - "TELEPORT_TO_NEW": Players currently standing in the old capture zone are teleported to the new warp.
+  player_transition: "NONE"
+
+  # Prevents picking the exact same region twice consecutively.
+  # Value Type: Boolean.
+  no_immediate_repeat: true
+
+  # Visual & Audio cues dispatched upon relocation.
+  effects:
+    enabled: true
+    sound: "ENTITY_ENDERMAN_TELEPORT"
+    beacon_beam: true
+
+  # Pool of candidate regions with relative selection weights:
+  # Chance for region R = (weight of R / sum of all weights in list).
+  regions:
+    - id: "region_one"
+      name: "<#F07DB5>Primary Citadel</#F07DB5>"
+      weight: 50
+      world: "world"
+      min: { x: 0, y: 64, z: 0 }
+      max: { x: 10, y: 74, z: 10 }
+      warp: { x: 5.5, y: 65.0, z: 5.5, yaw: 0.0, pitch: 0.0 }
+
+    - id: "region_two"
+      name: "<#00B8FF>Coastal Anchorage</#00B8FF>"
+      weight: 35
+      world: "world"
+      min: { x: -150, y: 64, z: 200 }
+      max: { x: -140, y: 74, z: 210 }
+      warp: { x: -145.0, y: 65.0, z: 205.0, yaw: 90.0, pitch: 0.0 }
+
+# Per-Outpost Language Overrides (Optional).
+# You can override ANY message, bossbar, actionbar, broadcast, or status chip
+# from lang.yml specifically for this outpost. Leave this empty ({}) to inherit defaults.
+#
+# Examples:
+# lang:
+#   telemetry:
+#     actionbar: "%state% <dark_gray>| <white>%progress%%</white> %progress_bar% <dark_gray>| <#FF6C00>%cappers% <#CECECE>competing</#CECECE>"
+#     bossbar:
+#       controlled: "<#00F878>🛡 [Citadel: <#98fc98>%team%</#98fc98>]</#00F878>"
+#       capturing: "<#FDC05C>▶ Capturing Citadel</#FDC05C> <gray>▶</gray> <#98fc98>%capping%</#98fc98> <dark_gray>(<#FDC05C>%progress%%</#FDC05C>)</dark_gray>"
+#       contested: "<#E13148>⚔ Citadel Contested</#E13148> <gray>▶</gray> <dark_gray>(<#FF6C00>%cappers% fighting<dark_gray>)</dark_gray>"
+#   broadcasts:
+#     milestone: "<prefix><white>The Citadel outpost reached %milestone%% by %team%!</white>"
+#
+lang: {}

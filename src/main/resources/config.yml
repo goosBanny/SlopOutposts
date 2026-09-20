@@ -1,0 +1,93 @@
+# ==============================================================================
+#                      Outposts (v1.0.0) Territory Engine
+#          Competitive King-of-the-Hill & Territorial Control System
+# ==============================================================================
+# Global server configuration: tick rates, gameplay rules, and plugin hooks.
+# Individual outposts are configured in the /outposts/ folder.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. System & Ticking
+# ------------------------------------------------------------------------------
+system:
+  # Language file (matches lang.yml). Messages and titles are edited there.
+  locale: "en_US"
+
+  # Core capture loop tick rate (in server ticks, 20 ticks = 1 second).
+  # 20 ticks = checks capture pads once per second.
+  engine_tick_frequency: 20
+
+  # Display update rate (in server ticks) for BossBars and ActionBars.
+  # 5 ticks = updates 4 times per second for smooth progress bars with low overhead.
+  display_update_interval_ticks: 5
+
+# ------------------------------------------------------------------------------
+# 2. Spatial Grid & Rendering
+# ------------------------------------------------------------------------------
+spatial:
+  # How many chunks around each outpost receive territory mob spawner buffs.
+  # A radius of 3 indexes a 7x7 chunk square (49 chunks) centered on the outpost.
+  proximity_chunk_radius: 3
+
+  # Maximum distance (in blocks) to show perimeter border particles to players.
+  # Beyond this distance, particles are hidden to keep client FPS high.
+  boundary_render_distance: 48
+
+# ------------------------------------------------------------------------------
+# 3. Gameplay & Pad Rules
+# ------------------------------------------------------------------------------
+gameplay:
+  # Limits how many outposts one team or player can hold at the same time.
+  max_outposts_per_team:
+    enabled: true
+    # Maximum territories one team/player can own simultaneously.
+    limit: 2
+    # Cooldown (in seconds) required before the same team can capture another outpost.
+    cooldown_seconds: 15
+
+  # Combat & movement restrictions inside active capture zones.
+  combat_restrictions:
+    # Stops players from eating Chorus Fruit to teleport or escape PvP on the pad.
+    prevent_chorus_fruit: true
+
+    # Stops players from gliding with Elytra inside the capture zone.
+    prevent_elytra_flight: true
+
+    # Stops players from breaking blocks inside the capture zone.
+    # Defaults to false because region plugins (like WorldGuard) usually handle build protection.
+    prevent_block_break: false
+
+    # Stops players from placing blocks (e.g. cobwebs, lava, obsidian) on the pad.
+    # Defaults to false because region plugins (like WorldGuard) usually handle build protection.
+    prevent_block_place: false
+
+# ------------------------------------------------------------------------------
+# 4. Team & Economy Hooks
+# ------------------------------------------------------------------------------
+hooks:
+  # Preferred Team/Faction plugin.
+  # Options:
+  #   AUTO        - Automatically detects the best installed plugin in this order:
+  #                 ZelTeams -> BetterTeams -> FactionsUUID -> Towny -> Scoreboard
+  #   ZELTEAMS    - ZelTeams (supports team bank deposits)
+  #   BETTERTEAMS - BetterTeams (by booksaw)
+  #   FACTIONS    - FactionsUUID / SaberFactions / SavageFactions
+  #   TOWNY       - Towny (Towns)
+  #   SCOREBOARD  - Vanilla Minecraft scoreboard teams (no external plugins needed)
+  team_provider: "AUTO"
+
+  # Towny only: If true, treats the whole Nation as the owner instead of individual Towns.
+  towny_use_nations: false
+
+  # Maximum multiplier that can be applied to ShopGUI+ item sales (e.g. 2.5 = 250% max).
+  shopguiplus_multiplier_cap: 2.5
+
+# ------------------------------------------------------------------------------
+# 5. Default Arena Creation Settings
+# ------------------------------------------------------------------------------
+defaults:
+  # Default mode used when creating an outpost via '/outpost create <id>'.
+  # Options:
+  #   TEAM - Captured and owned by teams/factions (allies assist, enemies contest).
+  #   SOLO - Free-for-all mode where individual players capture and own it.
+  occupancy_mode: "TEAM"

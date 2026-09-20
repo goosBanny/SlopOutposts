@@ -1,0 +1,33 @@
+name: Outposts
+version: '1.0.0'
+main: me.goosbanny.outposts.Outposts
+api-version: '1.20'
+authors: [ goosBanny ]
+description: Territory Control & Arena Engine for Paper and Folia
+softdepend:
+  - Vault
+  - PlaceholderAPI
+  - Factions
+  - Towny
+  - BetterTeams
+  - ZelTeams
+  - zelteams
+  - ShopGUIPlus
+
+commands:
+  outpost:
+    description: Master command for Outpost territory management
+    aliases: [outposts, op]
+    permission: outposts.use
+    usage: /<command> [subcommand]
+
+permissions:
+  outposts.use:
+    description: Allows using basic player outpost commands
+    default: true
+  outposts.admin:
+    description: Full administrative control over outposts, arenas, and settings
+    default: op
+  outposts.admin.bypass:
+    description: Bypasses block breaking and command restrictions within outpost zones
+    default: op
