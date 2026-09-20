@@ -48,8 +48,9 @@ Vacated Pad: 75% ───(bleed rate: 2.5%/s)───► 0% (Auto-Reverts to N
 
 ---
 
-## Anti-Jitter & Debounce Window
+## Anti-Jitter & Control Thresholds
 
-During intense PvP battles, contested capture bars can bounce rapidly between 99.9% and 100%, causing repetitive capture triggers and duplicate reward execution:
-- **Progress Hysteresis Buffer:** When held at 100%, defending ownership remains secure until progress drops strictly below `100.0 - hysteresis_buffer_percent` (e.g. 98.0%).
-- **State Debounce Timer:** State transitions (`CONTROLLED` $\leftrightarrow$ `CONTESTED`) require a stabilization window (`state_change_cooldown_seconds: 1.0`) before exiting contested state.
+During intense PvP battles, contested capture bars can bounce rapidly, causing jitter and duplicate reward execution:
+- **Lose Control Threshold (`lose_control_threshold`):** Defines how low attackers must push the capture bar before the defending team loses control. By default `100.0`, meaning attackers must reduce progress from 100% all the way to 0% to neutralize the point. If set to `60.0`, the point neutralizes as soon as defenders drop to 40% progress.
+- **Progress Hysteresis Buffer (`hysteresis_buffer_percent`):** Prevents ownership from toggling on and off when attackers tap the capture pad at full progress. For example, with `hysteresis_buffer_percent: 2.0`, defenders maintain full control until progress drops strictly below `98.0%`.
+- **State Debounce Timer (`state_change_cooldown_seconds`):** State transitions (`CONTROLLED` $\leftrightarrow$ `CONTESTED`) require a brief stabilization window (default `1.0s`) before exiting the contested state.

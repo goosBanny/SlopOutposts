@@ -37,4 +37,4 @@
 
 - **`outposts.use`**: Granted to default players (true by default).
 - **`outposts.admin`**: Full administrative access to manage outposts and run diagnostic audits.
-- **`outposts.admin.bypass`**: Allows server administrators to bypass block break/place restrictions and blocked commands inside outpost zones.
+- **`outposts.admin.bypass`**: Allows server administrators to bypass block break/place protections inside outpost zones.

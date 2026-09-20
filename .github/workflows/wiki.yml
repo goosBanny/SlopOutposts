@@ -1,0 +1,55 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'docs/wiki/**'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-wiki:
+    name: Sync Documentation to GitHub Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to GitHub Wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+          
+          echo "Checking GitHub Wiki availability..."
+          if ! git ls-remote "$WIKI_URL" &> /dev/null; then
+            echo "::warning title=Wiki Not Initialized::GitHub Wiki git repository is not accessible yet. To enable automatic sync: Go to repository Settings -> enable 'Wikis' (under Features), then open the 'Wiki' tab in GitHub and click 'Create the first page' once. Subsequent runs will automatically keep the wiki in sync!"
+            exit 0
+          fi
+
+          WIKI_DIR=$(mktemp -d)
+          echo "Cloning wiki repository..."
+          git clone "$WIKI_URL" "$WIKI_DIR"
+
+          echo "Synchronizing wiki documentation..."
+          # Clean existing wiki pages and replace with updated docs/wiki content
+          find "$WIKI_DIR" -maxdepth 1 -not -name '.git' -not -path "$WIKI_DIR" -exec rm -rf {} +
+          cp -r docs/wiki/* "$WIKI_DIR/"
+
+          cd "$WIKI_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes detected. GitHub Wiki is already up to date!"
+          else
+            git commit -m "docs(wiki): synchronize wiki documentation from main [skip ci]"
+            git push origin HEAD
+            echo "Successfully published documentation to GitHub Wiki!"
+          fi

@@ -4,7 +4,7 @@ Holding an outpost provides passive buffs, combat advantages, and repeated payou
 
 ---
 
-## 1. Multipliers Matrix
+## 1. Supported Multipliers
 
 | Multiplier Key | Default | Description |
 | :--- | :--- | :--- |
@@ -24,7 +24,7 @@ If a faction controls multiple outposts with different multipliers, the engine e
 
 ---
 
-## 3. Extensible Action Pipeline (TCA)
+## 3. Action Pipeline
 
 Each outpost configuration features a trigger pipeline:
 - `on_capture`: Executes immediately when a team reaches 100% and secures the outpost.

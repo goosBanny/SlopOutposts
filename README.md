@@ -3,6 +3,7 @@
 [![Java Version](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
 [![Platform](https://img.shields.io/badge/Platform-Paper%20%7C%20Folia-0099FF?style=for-the-badge&logo=minecraft&logoColor=white)](https://papermc.io/)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org/)
+[![Wiki](https://img.shields.io/badge/Documentation-Wiki-blue?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/goosBanny/SlopOutposts/wiki)
 [![License](https://img.shields.io/badge/License-No--Resale%20%2F%20Open%20Fork-orange?style=for-the-badge)](LICENSE)
 
 **Outposts** is a competitive King-of-the-Hill (KOTH) and persistent territorial control engine architected for modern Paper and multi-threaded Folia Minecraft servers (1.20.4 – 1.21+).
@@ -56,7 +57,7 @@ Built from the ground up on SOLID principles, Outposts combines high-intensity t
 - *(Optional)* [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/), [Vault](https://www.spigotmc.org/resources/vault.34315/), [BetterTeams](https://www.spigotmc.org/resources/better-teams.17129/), [ShopGUI+](https://www.spigotmc.org/resources/shopgui.6515/)
 
 ### 2. Installation
-1. Download the latest `Outposts-1.0.jar` from the [Releases](https://github.com/goosBanny/Outposts/releases) page.
+1. Download the latest `Outposts-1.0.jar` from the [Releases](https://github.com/goosBanny/SlopOutposts/releases/tag/latest) page.
 2. Place the jar into your server's `plugins/` directory.
 3. Start or restart your server.
 4. Outposts will automatically generate `config.yml`, `schedules.yml`, `lang.yml`, and a default demo arena at `outposts/south.yml`.

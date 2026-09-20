@@ -69,7 +69,7 @@ actions:
 
 ### 2. `geometry`
 - **`world`**: Bukkit world identifier.
-- **`min` / `max`**: Integer cuboid corners. Evaluated via primitive AABB math with zero heap object allocations.
+- **`min` / `max`**: Integer cuboid corners defining the capture boundary.
 - **`warp`**: Teleport destination coordinates used by `/outpost tp <id>`.
 
 ### 3. `mechanics`
@@ -81,8 +81,9 @@ actions:
 - **`lockout_seconds`**: Cooldown (in seconds) after a successful capture during which the arena remains locked (default: 10s).
 - **`knock_delay_seconds`**: Grace duration (in seconds) before an invader can begin reducing defender progress.
 - **`passive_decay.rate_per_second`**: Bleed rate (in percent per second) deducted when an unfinished point is abandoned.
-- **`hysteresis_buffer_percent`**: Protects against progress bounce jitter (e.g. 2.0% buffer keeps defenders in control until progress drops below 98.0%).
-- **`state_change_cooldown_seconds`**: Mandatory debounce stabilization timer (in seconds) before state transitions trigger uncontested state changes.
+- **`lose_control_threshold`**: Percentage at which the defending team officially loses ownership of the outpost. Default is `100.0` (attackers must knock defenders all the way down from 100% to 0% to take it). If set to `50.0`, attackers only need to push defenders down to 50% to neutralize the point.
+- **`hysteresis_buffer_percent`**: Buffer zone to prevent control status from flickering on/off if progress bounces near 100%. For example, with `2.0%`, defenders maintain control until their bar drops below `98.0%`.
+- **`state_change_cooldown_seconds`**: Stabilization delay (in seconds) before transitioning between active and uncontested states.
 
 ### 4. `actions`
 - **`COMMAND_CONSOLE_PER_PLAYER`**: Dispatches console command for each online member of the controlling team (or the winning solo player).
