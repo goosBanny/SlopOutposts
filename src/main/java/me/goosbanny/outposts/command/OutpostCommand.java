@@ -4,6 +4,7 @@ import me.goosbanny.outposts.Outposts;
 import me.goosbanny.outposts.api.arena.OccupancyMode;
 import me.goosbanny.outposts.api.arena.OutpostArena;
 import me.goosbanny.outposts.api.event.OutpostTeleportEvent;
+import me.goosbanny.outposts.api.mechanics.CaptureModeType;
 import me.goosbanny.outposts.config.LangManager;
 import me.goosbanny.outposts.core.anticheese.AntiCheeseConfig;
 import me.goosbanny.outposts.core.anticheese.AntiCheeseValidator;
@@ -96,7 +97,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(mm.deserialize("<gray>● <#00B8FF>/outpost compass <id></#00B8FF> <dark_gray>-</dark_gray> <#CECECE>Point compass needle to active outpost pad</#CECECE>"));
         if (sender.hasPermission("outposts.admin")) {
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost wand</#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Get visual setup wand</#CECECE>"));
-            sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost create <id> [TEAM|SOLO]</#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Create new outpost from wand selection</#CECECE>"));
+            sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost create <id> <TEAM|SOLO> [mode]</#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Create new outpost from wand selection</#CECECE>"));
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost delete <id></#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Delete an outpost arena</#CECECE>"));
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost setwarp <id></#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Set warp position to current location</#CECECE>"));
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost region <add|remove|list|setweight|shift></#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Manage dynamic regions</#CECECE>"));
@@ -178,8 +179,8 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(langManager.get("commands.no_permission"));
             return;
         }
-        if (args.length < 2) {
-            player.sendMessage(mm.deserialize("<red>Usage: /outpost create <id> [TEAM|SOLO]</red>"));
+        if (args.length < 3) {
+            player.sendMessage(mm.deserialize("<red>Usage: /outpost create <id> <TEAM|SOLO> [mode]</red>"));
             return;
         }
 
@@ -189,9 +190,22 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        OccupancyMode occupancyMode = args.length >= 3
-                ? OccupancyMode.fromString(args[2])
-                : OccupancyMode.TEAM;
+        String occStr = args[2].toUpperCase();
+        if (!occStr.equals("TEAM") && !occStr.equals("SOLO")) {
+            player.sendMessage(mm.deserialize("<red>Invalid occupancy mode '" + args[2] + "'. Must be TEAM or SOLO.</red>"));
+            return;
+        }
+        OccupancyMode occupancyMode = OccupancyMode.valueOf(occStr);
+
+        CaptureModeType captureMode = CaptureModeType.STANDARD_HILL;
+        if (args.length >= 4) {
+            try {
+                captureMode = CaptureModeType.valueOf(args[3].toUpperCase());
+            } catch (IllegalArgumentException e) {
+                player.sendMessage(mm.deserialize("<red>Invalid capture mode '" + args[3] + "'. Valid modes: STANDARD_HILL, TUG_OF_WAR, TICKET_ACCUMULATION</red>"));
+                return;
+            }
+        }
 
         OutpostWandListener.Selection sel = plugin.getWandListener().getSelection(player.getUniqueId());
         if (sel == null || !sel.isComplete()) {
@@ -219,7 +233,8 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
                     geometry.getMinX(), geometry.getMinY(), geometry.getMinZ(),
                     geometry.getMaxX(), geometry.getMaxY(), geometry.getMaxZ(),
                     player.getLocation(),
-                    occupancyMode
+                    occupancyMode,
+                    captureMode
             );
 
             OutpostArena arena = plugin.getArenaSerializer().loadFromFile(file);
@@ -617,16 +632,21 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
                 return filter(arenaIds, args[2]);
             }
         }
-        if (args.length == 4 && "region".equalsIgnoreCase(args[0]) && sender.hasPermission("outposts.admin")) {
-            String regSub = args[1].toLowerCase();
-            if (List.of("remove", "setweight", "shift").contains(regSub)) {
-                OutpostArena arena = plugin.getArenaManager().getArena(args[2]);
-                if (arena != null) {
-                    List<String> rIds = new ArrayList<>();
-                    for (ArenaRegion r : arena.getDynamicLocationConfig().getRegions()) {
-                        rIds.add(r.getId());
+        if (args.length == 4 && sender.hasPermission("outposts.admin")) {
+            if ("create".equalsIgnoreCase(args[0])) {
+                return filter(List.of("STANDARD_HILL", "TUG_OF_WAR", "TICKET_ACCUMULATION"), args[3]);
+            }
+            if ("region".equalsIgnoreCase(args[0])) {
+                String regSub = args[1].toLowerCase();
+                if (List.of("remove", "setweight", "shift").contains(regSub)) {
+                    OutpostArena arena = plugin.getArenaManager().getArena(args[2]);
+                    if (arena != null) {
+                        List<String> rIds = new ArrayList<>();
+                        for (ArenaRegion r : arena.getDynamicLocationConfig().getRegions()) {
+                            rIds.add(r.getId());
+                        }
+                        return filter(rIds, args[3]);
                     }
-                    return filter(rIds, args[3]);
                 }
             }
         }

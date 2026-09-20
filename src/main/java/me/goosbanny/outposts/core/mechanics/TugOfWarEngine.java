@@ -155,37 +155,35 @@ public class TugOfWarEngine implements CaptureModeEngine {
                 }
             }
         } else {
-            // Contested tug of war: pull according to dominant advantage if freeze disabled
-            if (!config.isFreezeWhenContested()) {
-                String dominantId = null;
-                int maxCount = -1;
-                int totalCount = 0;
-                for (Map.Entry<String, Integer> entry : teamCounts.entrySet()) {
-                    int count = entry.getValue();
-                    totalCount += count;
-                    if (count > maxCount) {
-                        maxCount = count;
-                        dominantId = entry.getKey();
-                    }
+            // Contested tug of war: pull according to dominant advantage
+            String dominantId = null;
+            int maxCount = -1;
+            int totalCount = 0;
+            for (Map.Entry<String, Integer> entry : teamCounts.entrySet()) {
+                int count = entry.getValue();
+                totalCount += count;
+                if (count > maxCount) {
+                    maxCount = count;
+                    dominantId = entry.getKey();
                 }
+            }
 
-                if (dominantId != null) {
-                    int totalOthers = totalCount - maxCount;
-                    int diff = maxCount - totalOthers;
-                    if (diff > 0) {
-                        double delta = config.getPercentPerTick() * 0.5;
-                        double current = arena.getProgress();
-                        String controllerId = arena.getControllerTeamId();
-                        String cappingId = arena.getCappingTeamId();
+            if (dominantId != null) {
+                int totalOthers = totalCount - maxCount;
+                int diff = maxCount - totalOthers;
+                if (diff > 0) {
+                    double delta = config.getPercentPerSecond() * config.getContestedAdvantageScaling() * diff;
+                    double current = arena.getProgress();
+                    String controllerId = arena.getControllerTeamId();
+                    String cappingId = arena.getCappingTeamId();
 
-                        boolean pullUp = (controllerId != null && controllerId.equalsIgnoreCase(dominantId))
-                                || (controllerId == null && (cappingId == null || cappingId.equalsIgnoreCase(dominantId)));
+                    boolean pullUp = (controllerId != null && controllerId.equalsIgnoreCase(dominantId))
+                            || (controllerId == null && (cappingId == null || cappingId.equalsIgnoreCase(dominantId)));
 
-                        double newProgress = pullUp
-                                ? Math.min(100.0, current + delta)
-                                : Math.max(0.0, current - delta);
-                        arena.setProgress(newProgress);
-                    }
+                    double newProgress = pullUp
+                            ? Math.min(100.0, current + delta)
+                            : Math.max(0.0, current - delta);
+                    arena.setProgress(newProgress);
                 }
             }
         }
@@ -208,13 +206,15 @@ public class TugOfWarEngine implements CaptureModeEngine {
                 arena.resetToNeutral();
             }
         }
-        // When abandoned and neutral, drift back toward 50% neutral midpoint
+        // When abandoned and neutral, drift back toward configured neutral anchor midpoint
         else if (arena.getControllerTeamId() == null) {
-            if (Math.abs(current - 50.0) > 0.1) {
-                if (current > 50.0) {
-                    arena.setProgress(Math.max(50.0, current - decayRate));
+            double anchor = config.getNeutralAnchorPercent();
+            double drift = config.getNeutralDriftRate();
+            if (Math.abs(current - anchor) > 0.1) {
+                if (current > anchor) {
+                    arena.setProgress(Math.max(anchor, current - drift));
                 } else {
-                    arena.setProgress(Math.min(50.0, current + decayRate));
+                    arena.setProgress(Math.min(anchor, current + drift));
                 }
             }
         }

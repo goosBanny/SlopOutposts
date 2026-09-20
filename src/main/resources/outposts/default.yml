@@ -23,8 +23,7 @@ meta:
 geometry:
   # Target Bukkit World name where the capture zone exists.
   # Value Type: String (e.g. "world", "world_nether", "world_the_end").
-  world: spawn
-  
+  world: world
   # Live particle bounding box rendering.
   # Value Type: Boolean (true = live RGB perimeter dust outlines rendered along corners and edges).
   # Default: false (recommended for optimal performance on large servers).
@@ -33,25 +32,25 @@ geometry:
   # Minimum inclusive 3D block coordinate bounds of the capture zone.
   # Units: Block Coordinates (Integers).
   min:
-    x: -91
-    y: -8
-    z: -93
+    x: 0
+    y: 64
+    z: 0
   
   # Maximum inclusive 3D block coordinate bounds of the capture zone.
   # Units: Block Coordinates (Integers).
   max:
-    x: -85
-    y: -6
-    z: -87
+    x: 5
+    y: 68
+    z: 5
   
   # Warp / Teleportation landing position for /outpost warp <id>.
   # Units: Floating-point block coordinates + yaw / pitch orientation degrees.
   warp:
-    x: -87.3
-    y: -8.0
-    z: -89.2
-    yaw: 130.9
-    pitch: 10.2
+    x: 0.0
+    y: 65.0
+    z: 0.0
+    yaw: 180.0
+    pitch: 0.0
 
 # Capture Mechanics, Timing, and Engine Lifecycle Parameters.
 mechanics:
@@ -170,6 +169,45 @@ mechanics:
     # Disallows teams from using unallied secondary factions to artificially stall captures.
     # Value Type: Boolean.
     disallow_allied_stall: true
+
+  # Per-Mode Engine Configuration Parameters.
+  # Specific parameters that take effect only when the corresponding mode is selected.
+  mode_settings:
+    # --------------------------------------------------------------------------
+    # Settings for mode: STANDARD_HILL (Classic King-of-the-Hill)
+    # --------------------------------------------------------------------------
+    standard_hill:
+      # Minimum number of valid capper players required inside the zone to begin capturing.
+      # Value Type: Integer (>= 1). Default: 1.
+      min_cappers_required: 1
+
+    # --------------------------------------------------------------------------
+    # Settings for mode: TUG_OF_WAR (Symmetrical Anchor)
+    # --------------------------------------------------------------------------
+    tug_of_war:
+      # Baseline neutral anchor midpoint where uncaptured pads start.
+      # Value Type: Double (0.0 to 100.0). Default: 50.0%.
+      neutral_anchor_percent: 50.0
+
+      # Percentage pull rate multiplier added per surplus player advantage in contested battles.
+      # Value Type: Double (> 0.0). Default: 0.5 (50% speed per player diff).
+      contested_advantage_scaling: 0.5
+
+      # Drift rate back toward the neutral_anchor_percent when unoccupied and neutral.
+      # Value Type: Double (> 0.0). Units: Percent per second. Default: 2.5%/s.
+      neutral_drift_rate: 2.5
+
+    # --------------------------------------------------------------------------
+    # Settings for mode: TICKET_ACCUMULATION (Score Goal)
+    # --------------------------------------------------------------------------
+    ticket_accumulation:
+      # Target ticket capacity required to secure complete victory.
+      # Value Type: Integer (>= 1). Default: 1000 tickets.
+      target_tickets: 1000
+
+      # Base ticket generation rate awarded per second while holding the outpost uncontested.
+      # Value Type: Double (> 0.0). Units: Tickets per second. Default: 10.0 tickets/sec.
+      tickets_per_second: 10.0
 
 # Economy, Drops, and Combat Multipliers (Active while controlled).
 multipliers:

@@ -23,6 +23,13 @@ public class ArenaMechanicsConfig {
     private final double hysteresisBufferPercent;
     private final double stateChangeCooldownSeconds;
 
+    private final int minCappersRequired;
+    private final double neutralAnchorPercent;
+    private final double contestedAdvantageScaling;
+    private final double neutralDriftRate;
+    private final int targetTickets;
+    private final double ticketsPerSecond;
+
     public ArenaMechanicsConfig(
             boolean enabled,
             CaptureModeType mode,
@@ -81,6 +88,35 @@ public class ArenaMechanicsConfig {
             double hysteresisBufferPercent,
             double stateChangeCooldownSeconds
     ) {
+        this(enabled, autoStart, mode, percentPerSecond, uncapturePercentPerSecond, scalingPerMember, maxCappersCounted,
+                freezeWhenContested, loseControlThreshold, lockoutSeconds, knockDelaySeconds,
+                passiveDecayEnabled, passiveDecayRate, hysteresisBufferPercent, stateChangeCooldownSeconds,
+                1, 50.0, 0.5, passiveDecayRate > 0 ? passiveDecayRate : 2.5, 1000, 10.0);
+    }
+
+    public ArenaMechanicsConfig(
+            boolean enabled,
+            boolean autoStart,
+            CaptureModeType mode,
+            double percentPerSecond,
+            double uncapturePercentPerSecond,
+            double scalingPerMember,
+            int maxCappersCounted,
+            boolean freezeWhenContested,
+            double loseControlThreshold,
+            long lockoutSeconds,
+            long knockDelaySeconds,
+            boolean passiveDecayEnabled,
+            double passiveDecayRate,
+            double hysteresisBufferPercent,
+            double stateChangeCooldownSeconds,
+            int minCappersRequired,
+            double neutralAnchorPercent,
+            double contestedAdvantageScaling,
+            double neutralDriftRate,
+            int targetTickets,
+            double ticketsPerSecond
+    ) {
         this.enabled = enabled;
         this.autoStart = autoStart;
         this.mode = mode != null ? mode : CaptureModeType.STANDARD_HILL;
@@ -96,6 +132,12 @@ public class ArenaMechanicsConfig {
         this.passiveDecayRate = passiveDecayRate > 0 ? passiveDecayRate : 2.5;
         this.hysteresisBufferPercent = hysteresisBufferPercent >= 0 ? hysteresisBufferPercent : 2.0;
         this.stateChangeCooldownSeconds = stateChangeCooldownSeconds >= 0 ? stateChangeCooldownSeconds : 1.0;
+        this.minCappersRequired = Math.max(1, minCappersRequired);
+        this.neutralAnchorPercent = neutralAnchorPercent >= 0.0 && neutralAnchorPercent <= 100.0 ? neutralAnchorPercent : 50.0;
+        this.contestedAdvantageScaling = contestedAdvantageScaling > 0 ? contestedAdvantageScaling : 0.5;
+        this.neutralDriftRate = neutralDriftRate > 0 ? neutralDriftRate : 2.5;
+        this.targetTickets = Math.max(1, targetTickets);
+        this.ticketsPerSecond = ticketsPerSecond > 0 ? ticketsPerSecond : 10.0;
     }
 
     public ArenaMechanicsConfig(
@@ -158,4 +200,11 @@ public class ArenaMechanicsConfig {
     public double getHysteresisBufferPercent() { return hysteresisBufferPercent; }
     public double getStateChangeCooldownSeconds() { return stateChangeCooldownSeconds; }
     public int getStateChangeCooldownTicks() { return (int) Math.round(stateChangeCooldownSeconds * 20.0); }
+
+    public int getMinCappersRequired() { return minCappersRequired; }
+    public double getNeutralAnchorPercent() { return neutralAnchorPercent; }
+    public double getContestedAdvantageScaling() { return contestedAdvantageScaling; }
+    public double getNeutralDriftRate() { return neutralDriftRate; }
+    public int getTargetTickets() { return targetTickets; }
+    public double getTicketsPerSecond() { return ticketsPerSecond; }
 }

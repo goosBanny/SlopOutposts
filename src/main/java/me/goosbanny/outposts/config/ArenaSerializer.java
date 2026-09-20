@@ -227,10 +227,20 @@ public class ArenaSerializer {
                         ? yaml.getInt("mechanics.behavior.state_change_cooldown_ticks") / 20.0
                         : 1.0);
 
+        int minCappersRequired = yaml.getInt("mechanics.mode_settings.standard_hill.min_cappers_required", yaml.getInt("mechanics.min_cappers_required", 1));
+
+        double neutralAnchorPercent = yaml.getDouble("mechanics.mode_settings.tug_of_war.neutral_anchor_percent", 50.0);
+        double contestedAdvantageScaling = yaml.getDouble("mechanics.mode_settings.tug_of_war.contested_advantage_scaling", 0.5);
+        double neutralDriftRate = yaml.getDouble("mechanics.mode_settings.tug_of_war.neutral_drift_rate", passiveDecayRate);
+
+        int targetTickets = yaml.getInt("mechanics.mode_settings.ticket_accumulation.target_tickets", 1000);
+        double ticketsPerSecond = yaml.getDouble("mechanics.mode_settings.ticket_accumulation.tickets_per_second", 10.0);
+
         ArenaMechanicsConfig mechanicsConfig = new ArenaMechanicsConfig(
                 enabled, autoStart, mode, percentPerSecond, uncapturePercentPerSecond, scalingPerMember, maxCappers,
                 freezeContested, loseThreshold, lockoutSeconds, knockDelaySeconds,
-                passiveDecayEnabled, passiveDecayRate, hysteresisBuffer, stateChangeCooldownSeconds
+                passiveDecayEnabled, passiveDecayRate, hysteresisBuffer, stateChangeCooldownSeconds,
+                minCappersRequired, neutralAnchorPercent, contestedAdvantageScaling, neutralDriftRate, targetTickets, ticketsPerSecond
         );
 
         // 4. Anti-Cheese
@@ -541,6 +551,15 @@ public class ArenaSerializer {
         yaml.set("mechanics.anti_cheese.disallow_vanished", true);
         yaml.set("mechanics.anti_cheese.disallow_allied_stall", true);
 
+        if (arena instanceof DefaultOutpostArena def) {
+            yaml.set("mechanics.mode_settings.standard_hill.min_cappers_required", def.getMechanicsConfig().getMinCappersRequired());
+            yaml.set("mechanics.mode_settings.tug_of_war.neutral_anchor_percent", def.getMechanicsConfig().getNeutralAnchorPercent());
+            yaml.set("mechanics.mode_settings.tug_of_war.contested_advantage_scaling", def.getMechanicsConfig().getContestedAdvantageScaling());
+            yaml.set("mechanics.mode_settings.tug_of_war.neutral_drift_rate", def.getMechanicsConfig().getNeutralDriftRate());
+            yaml.set("mechanics.mode_settings.ticket_accumulation.target_tickets", def.getMechanicsConfig().getTargetTickets());
+            yaml.set("mechanics.mode_settings.ticket_accumulation.tickets_per_second", def.getMechanicsConfig().getTicketsPerSecond());
+        }
+
         yaml.set("multipliers.spawner_rate", arena.getMultiplier("spawner_rate"));
         yaml.set("multipliers.mob_drop_rate", arena.getMultiplier("mob_drop_rate"));
         yaml.set("multipliers.exp_drop_rate", arena.getMultiplier("exp_drop_rate"));
@@ -634,6 +653,20 @@ public class ArenaSerializer {
             @NotNull Location warpLoc,
             @NotNull OccupancyMode occupancyMode
     ) throws IOException {
+        createFromTemplate(templateFile, targetFile, id, worldName, minX, minY, minZ, maxX, maxY, maxZ, warpLoc, occupancyMode, CaptureModeType.STANDARD_HILL);
+    }
+
+    public void createFromTemplate(
+            @NotNull File templateFile,
+            @NotNull File targetFile,
+            @NotNull String id,
+            @NotNull String worldName,
+            int minX, int minY, int minZ,
+            int maxX, int maxY, int maxZ,
+            @NotNull Location warpLoc,
+            @NotNull OccupancyMode occupancyMode,
+            @NotNull CaptureModeType captureMode
+    ) throws IOException {
         String templateContent = null;
         if (templateFile.exists()) {
             try {
@@ -658,10 +691,11 @@ public class ArenaSerializer {
 
             // Perform targeted regex replacements to preserve 100% of inline comments and documentation
             String customized = templateContent
-                    .replaceAll("(?m)^id:\\s*.*$", "id: \"" + id + "\"")
-                    .replaceAll("(?m)^(\\s*name:\\s*).*$", "$1\"<#F07DB5><bold>" + capitalizedId + " Outpost</bold></#F07DB5>\"")
-                    .replaceAll("(?m)^(\\s*world:\\s*).*$", "$1\"" + worldName + "\"")
-                    .replaceAll("(?m)^(\\s*occupancy_mode:\\s*).*$", "$1\"" + occupancyMode.name() + "\"");
+                    .replaceAll("(?m)^id:\\s*.*$", "id: " + id)
+                    .replaceAll("(?m)^(\\s*name:\\s*).*$", "$1<#F07DB5><bold>" + capitalizedId + " Outpost</bold></#F07DB5>")
+                    .replaceAll("(?m)^(\\s*world:\\s*).*$", "$1" + worldName)
+                    .replaceAll("(?m)^(\\s*occupancy_mode:\\s*).*$", "$1" + occupancyMode.name())
+                    .replaceAll("(?m)^(\\s*mode:\\s*).*$", "$1" + captureMode.name());
 
             // Replace coordinates under geometry.min, geometry.max, and geometry.warp
             customized = customized.replaceFirst("(?s)(min:\\s*\\n\\s*x:\\s*)[^\\n]+(\\n\\s*y:\\s*)[^\\n]+(\\n\\s*z:\\s*)[^\\n]+",
@@ -716,6 +750,7 @@ public class ArenaSerializer {
         yaml.set("geometry.warp.pitch", Math.round(warpLoc.getPitch() * 10.0) / 10.0);
 
         yaml.set("mechanics.occupancy_mode", occupancyMode.name());
+        yaml.set("mechanics.mode", captureMode.name());
 
         if (targetFile.getParentFile() != null) {
             targetFile.getParentFile().mkdirs();

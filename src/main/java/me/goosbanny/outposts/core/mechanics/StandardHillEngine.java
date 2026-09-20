@@ -39,7 +39,7 @@ public class StandardHillEngine implements CaptureModeEngine {
 
     @Override
     public void evaluateCapture(@NotNull OutpostArena arena, @NotNull List<Player> validCappers, boolean isContested) {
-        if (validCappers.isEmpty() || arena.isLocked()) {
+        if (validCappers.size() < config.getMinCappersRequired() || arena.isLocked()) {
             return;
         }
 
