@@ -60,6 +60,10 @@ telemetry:
     controlled: "<#00F878>🛡 Controlled</#00F878> <gray>▶</gray> <white>%name%</white> <dark_gray>• <#98fc98>%team%</#98fc98> <dark_gray>(<#00F878>%progress%%</#00F878>)</dark_gray>"
     capturing: "<#FDC05C>▶ Capturing</#FDC05C> <gray>▶</gray> <white>%name%</white> <dark_gray>• <#98fc98>%capping%</#98fc98> <dark_gray>(<#FDC05C>%progress%%</#FDC05C>)</dark_gray>"
     neutral: "<#CECECE>○ Neutral</#CECECE> <gray>▶</gray> <white>%name%</white> <dark_gray>(<#CECECE>0%</#CECECE>)</dark_gray>"
+    tug_of_war:
+      active: "%team_side_a% <gray>◄</gray> <dark_gray>[<white>%progress%%</white>]</dark_gray> <gray>►</gray> %team_side_b%"
+      deadzone: "%team_side_a% <dark_gray>◄ [<#FFFF55>DEADLOCK</#FFFF55>] ►</dark_gray> %team_side_b%"
+      locked: "<#00B8FF>🛡 Captured</#00B8FF> <gray>▶</gray> <white>%name%</white> <dark_gray>• <#98fc98>%team%</#98fc98> <dark_gray>(<#00B8FF>%seconds%s<dark_gray>)</dark_gray>"
 
 # Milestone progress & scheduled event broadcasts
 broadcasts:

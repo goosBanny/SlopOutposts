@@ -50,7 +50,7 @@ public class CaptureMechanicsTest {
         );
     }
 
-    private Player createMockPlayer(UUID uuid, String name) {
+    static Player createMockPlayer(UUID uuid, String name) {
         return (Player) Proxy.newProxyInstance(
                 Player.class.getClassLoader(),
                 new Class<?>[]{Player.class},
@@ -135,7 +135,7 @@ public class CaptureMechanicsTest {
         assertEquals(46.0, arena.getProgress(), 0.001);
     }
 
-    private static class DummyTeamProvider implements TeamRosterProvider {
+    static class DummyTeamProvider implements TeamRosterProvider {
         private final Map<UUID, String> playerTeams = new HashMap<>();
         private final Map<String, String> teamNames = new HashMap<>();
 
@@ -200,7 +200,7 @@ public class CaptureMechanicsTest {
         assertEquals("LoneWolf", arena.getCappingTeamName());
     }
 
-    private static class TestOutpostArena implements OutpostArena {
+    static class TestOutpostArena implements OutpostArena {
         private final String id;
         private OccupancyMode occupancyMode = OccupancyMode.TEAM;
         private double progress = 0.0;
@@ -420,7 +420,7 @@ public class CaptureMechanicsTest {
     }
 
     @Test
-    @DisplayName("Test TugOfWarEngine: Knocking defender to 0% resets to neutral without instant controller grant")
+    @DisplayName("Test TugOfWarEngine: Symmetrical duel where Side A pulls to 0% and captures")
     public void testTugOfWarKnockdownAndNeutralReset() {
         TugOfWarEngine engine = new TugOfWarEngine(teamProvider, config);
         TestOutpostArena arena = new TestOutpostArena("tow_test");
@@ -430,23 +430,22 @@ public class CaptureMechanicsTest {
         Player attacker = createMockPlayer(UUID.randomUUID(), "Attacker");
         teamProvider.registerPlayerTeam(attacker, "TeamAtk", "Attackers");
 
-        // Defender starts with 100% control
+        // Defender starts with 100% control (Side B)
         arena.setController("TeamDef", "Defenders", UUID.randomUUID());
         assertEquals(100.0, arena.getProgress(), 0.001);
 
-        // Attacker arrives alone and knocks down 100% -> 0%
+        // Attacker arrives alone as Side A and knocks down 100% -> 0%
         for (int i = 0; i < 10; i++) {
             engine.evaluateCapture(arena, List.of(attacker), false);
         }
 
-        // Must reset to neutral (controller is null, not automatically assigned to attacker at 0%)
+        // Side A captures when reaching 0%
         assertEquals(0.0, arena.getProgress(), 0.001);
-        assertNull(arena.getControllerTeamId());
-        assertEquals("TeamAtk", arena.getCappingTeamId());
+        assertEquals("TeamAtk", arena.getControllerTeamId());
     }
 
     @Test
-    @DisplayName("Test TugOfWarEngine: Contested multi-team (3+ teams) pulls toward dominant team")
+    @DisplayName("Test TugOfWarEngine: Contested 2-team duel pulls toward dominant team")
     public void testMultiTeamContestedTugOfWar() {
         ArenaMechanicsConfig noFreezeConfig = new ArenaMechanicsConfig(
                 true,
@@ -471,21 +470,14 @@ public class CaptureMechanicsTest {
         Player playerA = createMockPlayer(UUID.randomUUID(), "PlayerA");
         teamProvider.registerPlayerTeam(playerA, "TeamA", "Team A");
 
-        Player playerB = createMockPlayer(UUID.randomUUID(), "PlayerB");
-        teamProvider.registerPlayerTeam(playerB, "TeamB", "Team B");
+        Player playerB1 = createMockPlayer(UUID.randomUUID(), "PlayerB1");
+        Player playerB2 = createMockPlayer(UUID.randomUUID(), "PlayerB2");
+        teamProvider.registerPlayerTeam(playerB1, "TeamB", "Team B");
+        teamProvider.registerPlayerTeam(playerB2, "TeamB", "Team B");
 
-        Player playerC1 = createMockPlayer(UUID.randomUUID(), "PlayerC1");
-        Player playerC2 = createMockPlayer(UUID.randomUUID(), "PlayerC2");
-        Player playerC3 = createMockPlayer(UUID.randomUUID(), "PlayerC3");
-        teamProvider.registerPlayerTeam(playerC1, "TeamC", "Team C");
-        teamProvider.registerPlayerTeam(playerC2, "TeamC", "Team C");
-        teamProvider.registerPlayerTeam(playerC3, "TeamC", "Team C");
-
-        arena.setCappingTeam("TeamC", "Team C");
-
-        // Team A (1), Team B (1), Team C (3) => Team C dominant: 3 - (1 + 1) = 1 > 0
-        engine.evaluateCapture(arena, List.of(playerA, playerB, playerC1, playerC2, playerC3), true);
-        // delta = 10.0 * 0.5 = 5.0 -> 50.0 + 5.0 = 55.0
+        // Team A (1 capper on Side A), Team B (2 cappers on Side B) => diff = 2 - 1 = 1 > 0 towards Side B (100%)
+        engine.evaluateCapture(arena, List.of(playerA, playerB1, playerB2), true);
+        // delta = 10.0 * 0.5 * 1 = 5.0 -> 50.0 + 5.0 = 55.0
         assertEquals(55.0, arena.getProgress(), 0.001);
     }
 }

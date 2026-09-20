@@ -86,8 +86,15 @@ hooks:
 # 5. Default Arena Creation Settings
 # ------------------------------------------------------------------------------
 defaults:
-  # Default mode used when creating an outpost via '/outpost create <id>'.
+  # Default mode used when creating an outpost via '/outpost create <id> <TEAM|SOLO> [mode]'.
   # Options:
   #   TEAM - Captured and owned by teams/factions (allies assist, enemies contest).
   #   SOLO - Free-for-all mode where individual players capture and own it.
   occupancy_mode: "TEAM"
+
+  # Default capture mechanics strategy when omitted in '/outpost create'.
+  # Options:
+  #   STANDARD_HILL        - Classic King-of-the-Hill (0% to 100%)
+  #   TUG_OF_WAR           - Symmetrical 2-team tug-of-war from 50% midpoint
+  #   TICKET_ACCUMULATION  - Point goal accumulation (0 to target tickets)
+  capture_mode: "STANDARD_HILL"

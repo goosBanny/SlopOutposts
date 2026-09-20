@@ -197,6 +197,16 @@ mechanics:
       # Value Type: Double (> 0.0). Units: Percent per second. Default: 2.5%/s.
       neutral_drift_rate: 2.5
 
+      # Team assignment strategy:
+      # - FIRST_TWO_FACTIONS: First two opposing factions to step on pad lock into Side A vs Side B duel. 3rd parties ignored.
+      # - AUTO_RED_BLUE: Automatically balances players entering the zone into Red vs Blue teams. Ideal for solo/casual.
+      # Value Type: String (FIRST_TWO_FACTIONS | AUTO_RED_BLUE). Default: FIRST_TWO_FACTIONS.
+      team_assignment: FIRST_TWO_FACTIONS
+
+      # Percentage deadzone buffer around the 50.0% midpoint where the outpost remains dead-center neutral.
+      # Value Type: Double (>= 0.0). Default: 2.5% (Range: 47.5% - 52.5%).
+      deadzone_buffer_percent: 2.5
+
     # --------------------------------------------------------------------------
     # Settings for mode: TICKET_ACCUMULATION (Score Goal)
     # --------------------------------------------------------------------------

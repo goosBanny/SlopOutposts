@@ -1,6 +1,7 @@
 package me.goosbanny.outposts.core.arena;
 
 import me.goosbanny.outposts.api.mechanics.CaptureModeType;
+import me.goosbanny.outposts.api.mechanics.TugOfWarTeamAssignment;
 
 /**
  * Immutable configuration settings for arena capture mechanics and behavior parameters.
@@ -29,6 +30,8 @@ public class ArenaMechanicsConfig {
     private final double neutralDriftRate;
     private final int targetTickets;
     private final double ticketsPerSecond;
+    private final TugOfWarTeamAssignment tugOfWarTeamAssignment;
+    private final double deadzoneBufferPercent;
 
     public ArenaMechanicsConfig(
             boolean enabled,
@@ -91,7 +94,8 @@ public class ArenaMechanicsConfig {
         this(enabled, autoStart, mode, percentPerSecond, uncapturePercentPerSecond, scalingPerMember, maxCappersCounted,
                 freezeWhenContested, loseControlThreshold, lockoutSeconds, knockDelaySeconds,
                 passiveDecayEnabled, passiveDecayRate, hysteresisBufferPercent, stateChangeCooldownSeconds,
-                1, 50.0, 0.5, passiveDecayRate > 0 ? passiveDecayRate : 2.5, 1000, 10.0);
+                1, 50.0, 0.5, passiveDecayRate > 0 ? passiveDecayRate : 2.5, 1000, 10.0,
+                TugOfWarTeamAssignment.FIRST_TWO_FACTIONS, 2.5);
     }
 
     public ArenaMechanicsConfig(
@@ -117,6 +121,38 @@ public class ArenaMechanicsConfig {
             int targetTickets,
             double ticketsPerSecond
     ) {
+        this(enabled, autoStart, mode, percentPerSecond, uncapturePercentPerSecond, scalingPerMember, maxCappersCounted,
+                freezeWhenContested, loseControlThreshold, lockoutSeconds, knockDelaySeconds,
+                passiveDecayEnabled, passiveDecayRate, hysteresisBufferPercent, stateChangeCooldownSeconds,
+                minCappersRequired, neutralAnchorPercent, contestedAdvantageScaling, neutralDriftRate, targetTickets, ticketsPerSecond,
+                TugOfWarTeamAssignment.FIRST_TWO_FACTIONS, 2.5);
+    }
+
+    public ArenaMechanicsConfig(
+            boolean enabled,
+            boolean autoStart,
+            CaptureModeType mode,
+            double percentPerSecond,
+            double uncapturePercentPerSecond,
+            double scalingPerMember,
+            int maxCappersCounted,
+            boolean freezeWhenContested,
+            double loseControlThreshold,
+            long lockoutSeconds,
+            long knockDelaySeconds,
+            boolean passiveDecayEnabled,
+            double passiveDecayRate,
+            double hysteresisBufferPercent,
+            double stateChangeCooldownSeconds,
+            int minCappersRequired,
+            double neutralAnchorPercent,
+            double contestedAdvantageScaling,
+            double neutralDriftRate,
+            int targetTickets,
+            double ticketsPerSecond,
+            TugOfWarTeamAssignment tugOfWarTeamAssignment,
+            double deadzoneBufferPercent
+    ) {
         this.enabled = enabled;
         this.autoStart = autoStart;
         this.mode = mode != null ? mode : CaptureModeType.STANDARD_HILL;
@@ -138,6 +174,8 @@ public class ArenaMechanicsConfig {
         this.neutralDriftRate = neutralDriftRate > 0 ? neutralDriftRate : 2.5;
         this.targetTickets = Math.max(1, targetTickets);
         this.ticketsPerSecond = ticketsPerSecond > 0 ? ticketsPerSecond : 10.0;
+        this.tugOfWarTeamAssignment = tugOfWarTeamAssignment != null ? tugOfWarTeamAssignment : TugOfWarTeamAssignment.FIRST_TWO_FACTIONS;
+        this.deadzoneBufferPercent = deadzoneBufferPercent >= 0 ? deadzoneBufferPercent : 2.5;
     }
 
     public ArenaMechanicsConfig(
@@ -207,4 +245,6 @@ public class ArenaMechanicsConfig {
     public double getNeutralDriftRate() { return neutralDriftRate; }
     public int getTargetTickets() { return targetTickets; }
     public double getTicketsPerSecond() { return ticketsPerSecond; }
+    public TugOfWarTeamAssignment getTugOfWarTeamAssignment() { return tugOfWarTeamAssignment; }
+    public double getDeadzoneBufferPercent() { return deadzoneBufferPercent; }
 }

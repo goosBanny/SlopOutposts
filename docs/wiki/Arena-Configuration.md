@@ -85,7 +85,21 @@ actions:
 - **`hysteresis_buffer_percent`**: Buffer zone to prevent control status from flickering on/off if progress bounces near 100%. For example, with `2.0%`, defenders maintain control until their bar drops below `98.0%`.
 - **`state_change_cooldown_seconds`**: Stabilization delay (in seconds) before transitioning between active and uncontested states.
 
-### 4. `actions`
+### 4. `mode_settings` (Per-Mode Configuration)
+Specific fine-tuning parameters for each game mode:
+- **`standard_hill`**:
+  - `min_cappers_required`: Minimum valid players required inside the zone to begin capture (default: `1`).
+- **`tug_of_war`**:
+  - `neutral_anchor_percent`: Midpoint anchor where uncaptured pads start (default: `50.0%`).
+  - `contested_advantage_scaling`: Pull speed multiplier per surplus capper (default: `0.5`).
+  - `neutral_drift_rate`: Percentage per second progress drifts toward 50.0% when abandoned (default: `2.5%/s`).
+  - `team_assignment`: `FIRST_TWO_FACTIONS` (symmetrical 2-faction duel, 3rd parties ignored) or `AUTO_RED_BLUE` (balances players into Red vs Blue).
+  - `deadzone_buffer_percent`: Neutral deadlock range around midpoint (default: `2.5%`, 47.5% - 52.5%).
+- **`ticket_accumulation`**:
+  - `target_tickets`: Score required for victory (default: `1000`).
+  - `tickets_per_second`: Tickets generated per second while uncontested (default: `10.0`).
+
+### 5. `actions`
 - **`COMMAND_CONSOLE_PER_PLAYER`**: Dispatches console command for each online member of the controlling team (or the winning solo player).
 - **`COMMAND_CONSOLE_PER_TEAM`**: Dispatches console command once for the team/console.
 - **`COMMAND_CONSOLE`**: Standard command execution with optional `target: "PLAYER" | "LEADER" | "TEAM" | "ZONE" | "TEAM_ZONE"`.

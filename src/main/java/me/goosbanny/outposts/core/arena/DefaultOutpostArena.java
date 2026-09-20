@@ -171,6 +171,10 @@ public class DefaultOutpostArena implements OutpostArena {
         this.langManager = langManager;
         this.occupancyMode = occupancyMode != null ? occupancyMode : OccupancyMode.TEAM;
         this.rewardIntervalSeconds = Math.max(1, rewardIntervalSeconds);
+        if (mechanicsConfig.getMode() == CaptureModeType.TUG_OF_WAR && this.controllerTeamId == null) {
+            this.progress = mechanicsConfig.getNeutralAnchorPercent();
+            this.state = ArenaState.NEUTRAL;
+        }
         updateSnapshot();
     }
 
@@ -374,6 +378,10 @@ public class DefaultOutpostArena implements OutpostArena {
 
     public ArenaMultipliers getMultipliers() { return multipliers; }
 
+    public @NotNull CaptureModeEngine getCaptureEngine() {
+        return captureEngine;
+    }
+
     public void setCaptureEngine(@NotNull CaptureModeEngine captureEngine) {
         this.captureEngine = captureEngine;
     }
@@ -492,8 +500,9 @@ public class DefaultOutpostArena implements OutpostArena {
         this.controllerTeamId = teamId;
         this.controllerTeamName = teamName;
         this.cappingTeamId = null;
-        this.cappingTeamName = null;
-        this.progress = 100.0;
+        if (mechanicsConfig.getMode() != CaptureModeType.TUG_OF_WAR) {
+            this.progress = 100.0;
+        }
         this.state = ArenaState.CONTROLLED;
         this.timeControlledSeconds = 0;
         this.invaderHoldSeconds = 0;
@@ -525,11 +534,15 @@ public class DefaultOutpostArena implements OutpostArena {
         this.controllerTeamName = null;
         this.cappingTeamId = null;
         this.cappingTeamName = null;
-        this.progress = 0.0;
+        this.progress = mechanicsConfig.getMode() == CaptureModeType.TUG_OF_WAR ? mechanicsConfig.getNeutralAnchorPercent() : 0.0;
         this.state = ArenaState.NEUTRAL;
         this.timeControlledSeconds = 0;
         this.invaderHoldSeconds = 0;
         this.lastAnnouncedMilestone = 0;
+
+        if (captureEngine instanceof me.goosbanny.outposts.core.mechanics.TugOfWarEngine tow) {
+            tow.resetSides();
+        }
 
         if (prevTeamId != null) {
             Bukkit.getPluginManager().callEvent(new OutpostLostEvent(this, prevTeamId, prevTeamName));

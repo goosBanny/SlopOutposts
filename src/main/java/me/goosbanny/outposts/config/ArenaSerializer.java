@@ -4,6 +4,7 @@ import me.goosbanny.outposts.api.arena.OccupancyMode;
 import me.goosbanny.outposts.api.arena.OutpostArena;
 import me.goosbanny.outposts.api.mechanics.CaptureModeEngine;
 import me.goosbanny.outposts.api.mechanics.CaptureModeType;
+import me.goosbanny.outposts.api.mechanics.TugOfWarTeamAssignment;
 import me.goosbanny.outposts.api.pipeline.ActionTrigger;
 import me.goosbanny.outposts.api.pipeline.ArenaAction;
 import me.goosbanny.outposts.api.team.TeamEconomyProvider;
@@ -232,6 +233,14 @@ public class ArenaSerializer {
         double neutralAnchorPercent = yaml.getDouble("mechanics.mode_settings.tug_of_war.neutral_anchor_percent", 50.0);
         double contestedAdvantageScaling = yaml.getDouble("mechanics.mode_settings.tug_of_war.contested_advantage_scaling", 0.5);
         double neutralDriftRate = yaml.getDouble("mechanics.mode_settings.tug_of_war.neutral_drift_rate", passiveDecayRate);
+        String tugTeamAssignmentStr = yaml.getString("mechanics.mode_settings.tug_of_war.team_assignment", "FIRST_TWO_FACTIONS").toUpperCase();
+        TugOfWarTeamAssignment tugOfWarTeamAssignment;
+        try {
+            tugOfWarTeamAssignment = TugOfWarTeamAssignment.valueOf(tugTeamAssignmentStr);
+        } catch (IllegalArgumentException e) {
+            tugOfWarTeamAssignment = TugOfWarTeamAssignment.FIRST_TWO_FACTIONS;
+        }
+        double deadzoneBufferPercent = yaml.getDouble("mechanics.mode_settings.tug_of_war.deadzone_buffer_percent", 2.5);
 
         int targetTickets = yaml.getInt("mechanics.mode_settings.ticket_accumulation.target_tickets", 1000);
         double ticketsPerSecond = yaml.getDouble("mechanics.mode_settings.ticket_accumulation.tickets_per_second", 10.0);
@@ -240,7 +249,9 @@ public class ArenaSerializer {
                 enabled, autoStart, mode, percentPerSecond, uncapturePercentPerSecond, scalingPerMember, maxCappers,
                 freezeContested, loseThreshold, lockoutSeconds, knockDelaySeconds,
                 passiveDecayEnabled, passiveDecayRate, hysteresisBuffer, stateChangeCooldownSeconds,
-                minCappersRequired, neutralAnchorPercent, contestedAdvantageScaling, neutralDriftRate, targetTickets, ticketsPerSecond
+                minCappersRequired, neutralAnchorPercent, contestedAdvantageScaling, neutralDriftRate,
+                targetTickets, ticketsPerSecond,
+                tugOfWarTeamAssignment, deadzoneBufferPercent
         );
 
         // 4. Anti-Cheese
@@ -556,6 +567,8 @@ public class ArenaSerializer {
             yaml.set("mechanics.mode_settings.tug_of_war.neutral_anchor_percent", def.getMechanicsConfig().getNeutralAnchorPercent());
             yaml.set("mechanics.mode_settings.tug_of_war.contested_advantage_scaling", def.getMechanicsConfig().getContestedAdvantageScaling());
             yaml.set("mechanics.mode_settings.tug_of_war.neutral_drift_rate", def.getMechanicsConfig().getNeutralDriftRate());
+            yaml.set("mechanics.mode_settings.tug_of_war.team_assignment", def.getMechanicsConfig().getTugOfWarTeamAssignment().name());
+            yaml.set("mechanics.mode_settings.tug_of_war.deadzone_buffer_percent", def.getMechanicsConfig().getDeadzoneBufferPercent());
             yaml.set("mechanics.mode_settings.ticket_accumulation.target_tickets", def.getMechanicsConfig().getTargetTickets());
             yaml.set("mechanics.mode_settings.ticket_accumulation.tickets_per_second", def.getMechanicsConfig().getTicketsPerSecond());
         }

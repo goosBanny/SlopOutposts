@@ -18,7 +18,7 @@
 | Command | Permission | Description |
 | :--- | :--- | :--- |
 | `/outpost wand` | `outposts.admin` | Gives the visual boundary setup wand |
-| `/outpost create <id>` | `outposts.admin` | Creates a new outpost from the active wand selection |
+| `/outpost create <id> <TEAM\|SOLO> [mode]` | `outposts.admin` | Creates an outpost arena from wand selection with occupancy and capture mode |
 | `/outpost delete <id>` | `outposts.admin` | Deletes an outpost and removes its configuration file |
 | `/outpost setwarp <id>` | `outposts.admin` | Sets the warp location to your current coordinates |
 | `/outpost region add <outpost> <reg_id> <name> [wt]` | `outposts.admin` | Adds a dynamic location region using current wand selection |

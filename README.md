@@ -68,7 +68,7 @@ Built from the ground up on SOLID principles, Outposts combines high-intensity t
 3. **Right-click** a block to select Corner 2. A live pink particle box will appear outlining the selection.
 4. Stand at the desired teleport point and type:
    ```bash
-   /outpost create desert
+   /outpost create desert TEAM STANDARD_HILL
    ```
 5. Your new arena `outposts/desert.yml` is saved and immediately active!
 
@@ -84,7 +84,7 @@ Built from the ground up on SOLID principles, Outposts combines high-intensity t
 | `/outpost compass <id>` | `outposts.use` | Points your compass directly to the active outpost location |
 | `/outpost shop` | `outposts.use` | Displays outpost black-market shop information |
 | `/outpost wand` | `outposts.admin` | Gives the visual boundary setup wand |
-| `/outpost create <id>` | `outposts.admin` | Creates an outpost arena from active wand selection |
+| `/outpost create <id> <TEAM\|SOLO> [mode]` | `outposts.admin` | Creates an outpost arena from active wand selection |
 | `/outpost delete <id>` | `outposts.admin` | Deletes an outpost arena and removes its config |
 | `/outpost setwarp <id>` | `outposts.admin` | Sets the warp location to your current position |
 | `/outpost region add <outpost> <reg_id> <name> [wt]` | `outposts.admin` | Adds a dynamic location region using current wand selection |

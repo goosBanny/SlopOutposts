@@ -38,9 +38,9 @@ public class BossBarManager {
     private final TeamRosterProvider teamProvider;
     private final LangManager langManager;
     private final int renderDistanceBlocks;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final Map<String, BossBar> arenaBossBars = new ConcurrentHashMap<>();
     private final Map<String, Set<UUID>> viewersPerArena = new ConcurrentHashMap<>();
+    private final Map<String, Map<UUID, BossBar>> tugOfWarPlayerBars = new ConcurrentHashMap<>();
 
     public BossBarManager(@NotNull TeamRosterProvider teamProvider, @NotNull LangManager langManager, int renderDistanceBlocks) {
         this.teamProvider = teamProvider;
@@ -104,6 +104,20 @@ public class BossBarManager {
      * 100% thread-safe to run asynchronously on OutpostsAsyncWorker.
      */
     public void updateArenaBar(@NotNull OutpostArena arena, @NotNull Set<UUID> nearbyPlayers) {
+        if (arena.getCaptureModeType() == me.goosbanny.outposts.api.mechanics.CaptureModeType.TUG_OF_WAR) {
+            updateTugOfWarBar(arena, nearbyPlayers);
+            return;
+        }
+
+        // Clean up any Tug-of-War player bars if mode switched
+        Map<UUID, BossBar> previousTowBars = tugOfWarPlayerBars.remove(arena.getId());
+        if (previousTowBars != null) {
+            for (Map.Entry<UUID, BossBar> entry : previousTowBars.entrySet()) {
+                Player p = Bukkit.getPlayer(entry.getKey());
+                if (p != null) p.hideBossBar(entry.getValue());
+            }
+        }
+
         if (!arena.isActive()) {
             removeArenaBar(arena.getId());
             return;
@@ -203,6 +217,119 @@ public class BossBarManager {
         }
     }
 
+    private void updateTugOfWarBar(@NotNull OutpostArena arena, @NotNull Set<UUID> nearbyPlayers) {
+        // Clean up standard bar if present
+        BossBar standardBar = arenaBossBars.remove(arena.getId());
+        Set<UUID> standardViewers = viewersPerArena.remove(arena.getId());
+        if (standardBar != null && standardViewers != null) {
+            for (UUID u : standardViewers) {
+                Player p = Bukkit.getPlayer(u);
+                if (p != null) p.hideBossBar(standardBar);
+            }
+        }
+
+        if (!arena.isActive()) {
+            removeArenaBar(arena.getId());
+            return;
+        }
+
+        String mainPath = "telemetry.bossbar.tug_of_war";
+        if (langManager.isSuppressed(mainPath, arena) || langManager.isSuppressed("telemetry.bossbar", arena)) {
+            removeArenaBar(arena.getId());
+            return;
+        }
+
+        me.goosbanny.outposts.core.mechanics.TugOfWarEngine tow = null;
+        if (arena instanceof DefaultOutpostArena def && def.getCaptureEngine() instanceof me.goosbanny.outposts.core.mechanics.TugOfWarEngine engine) {
+            tow = engine;
+        }
+
+        float progress = (float) Math.max(0.0, Math.min(1.0, arena.getProgress() / 100.0));
+        double deadzone = 2.5;
+        if (arena instanceof DefaultOutpostArena def) {
+            deadzone = def.getMechanicsConfig().getDeadzoneBufferPercent();
+        }
+
+        String rawSideAName = (tow != null && tow.getSideAName() != null) ? tow.getSideAName() : "RED";
+        String rawSideBName = (tow != null && tow.getSideBName() != null) ? tow.getSideBName() : "BLUE";
+
+        BossBar.Color barColor;
+        if (arena.isLocked()) {
+            barColor = BossBar.Color.BLUE;
+        } else if (arena.getProgress() < 50.0 - deadzone) {
+            barColor = BossBar.Color.RED;
+        } else if (arena.getProgress() > 50.0 + deadzone) {
+            barColor = BossBar.Color.BLUE;
+        } else {
+            barColor = BossBar.Color.YELLOW;
+        }
+
+        String stateKey;
+        if (arena.isLocked()) {
+            stateKey = "locked";
+        } else if (Math.abs(arena.getProgress() - 50.0) <= deadzone) {
+            stateKey = "deadzone";
+        } else {
+            stateKey = "active";
+        }
+        String langPath = "telemetry.bossbar.tug_of_war." + stateKey;
+
+        Map<UUID, BossBar> playerBars = tugOfWarPlayerBars.computeIfAbsent(arena.getId(), k -> new ConcurrentHashMap<>());
+
+        for (UUID uuid : nearbyPlayers) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p == null || !p.isOnline()) continue;
+
+            me.goosbanny.outposts.core.mechanics.TugOfWarEngine.TugSide side = tow != null ? tow.getPlayerSide(p) : me.goosbanny.outposts.core.mechanics.TugOfWarEngine.TugSide.NONE;
+
+            Map<String, String> tokens = new HashMap<>();
+            tokens.put("name", arena.getSerializedDisplayName());
+            tokens.put("progress", String.format("%.1f", arena.getProgress()));
+            tokens.put("seconds", String.valueOf(arena.getLockoutRemainingSeconds()));
+            tokens.put("side_a", rawSideAName);
+            tokens.put("side_b", rawSideBName);
+
+            String teamDisplay = resolveParticipantName(arena.getControllerTeamName(), arena.getControllerTeamId());
+            tokens.put("team", teamDisplay != null ? teamDisplay : langManager.getPlaceholder("no_controller", "No Controller"));
+
+            if (side == me.goosbanny.outposts.core.mechanics.TugOfWarEngine.TugSide.SIDE_A) {
+                tokens.put("team_side_a", "<#FF4B4B><bold>" + rawSideAName + " (YOU)</bold></#FF4B4B>");
+                tokens.put("team_side_b", "<#4B8CFF><bold>" + rawSideBName + "</bold></#4B8CFF>");
+            } else if (side == me.goosbanny.outposts.core.mechanics.TugOfWarEngine.TugSide.SIDE_B) {
+                tokens.put("team_side_a", "<#FF4B4B><bold>" + rawSideAName + "</bold></#FF4B4B>");
+                tokens.put("team_side_b", "<#4B8CFF><bold>" + rawSideBName + " (YOU)</bold></#4B8CFF>");
+            } else {
+                tokens.put("team_side_a", "<#FF4B4B><bold>" + rawSideAName + "</bold></#FF4B4B>");
+                tokens.put("team_side_b", "<#4B8CFF><bold>" + rawSideBName + "</bold></#4B8CFF>");
+            }
+
+            Component title = langManager.get(langPath, arena, tokens);
+
+            BossBar bar = playerBars.computeIfAbsent(uuid, u -> {
+                BossBar newBar = BossBar.bossBar(Component.empty(), progress, barColor, BossBar.Overlay.PROGRESS);
+                p.showBossBar(newBar);
+                return newBar;
+            });
+
+            bar.name(title);
+            bar.color(barColor);
+            bar.progress(progress);
+        }
+
+        Iterator<Map.Entry<UUID, BossBar>> it = playerBars.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, BossBar> entry = it.next();
+            UUID uuid = entry.getKey();
+            if (!nearbyPlayers.contains(uuid)) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) {
+                    p.hideBossBar(entry.getValue());
+                }
+                it.remove();
+            }
+        }
+    }
+
     public void removeArenaBar(@NotNull String arenaId) {
         BossBar bar = arenaBossBars.remove(arenaId);
         Set<UUID> viewers = viewersPerArena.remove(arenaId);
@@ -211,6 +338,16 @@ public class BossBarManager {
                 Player p = Bukkit.getPlayer(uuid);
                 if (p != null) {
                     p.hideBossBar(bar);
+                }
+            }
+        }
+
+        Map<UUID, BossBar> pBars = tugOfWarPlayerBars.remove(arenaId);
+        if (pBars != null) {
+            for (Map.Entry<UUID, BossBar> entry : pBars.entrySet()) {
+                Player p = Bukkit.getPlayer(entry.getKey());
+                if (p != null) {
+                    p.hideBossBar(entry.getValue());
                 }
             }
         }
@@ -230,6 +367,16 @@ public class BossBarManager {
         }
         arenaBossBars.clear();
         viewersPerArena.clear();
+
+        for (Map<UUID, BossBar> map : tugOfWarPlayerBars.values()) {
+            for (Map.Entry<UUID, BossBar> entry : map.entrySet()) {
+                Player p = Bukkit.getPlayer(entry.getKey());
+                if (p != null) {
+                    p.hideBossBar(entry.getValue());
+                }
+            }
+        }
+        tugOfWarPlayerBars.clear();
     }
 
     /**
@@ -244,6 +391,16 @@ public class BossBarManager {
                     if (p != null) {
                         p.hideBossBar(bar);
                     }
+                }
+            }
+        }
+
+        for (Map<UUID, BossBar> map : tugOfWarPlayerBars.values()) {
+            BossBar bar = map.remove(playerUuid);
+            if (bar != null) {
+                Player p = Bukkit.getPlayer(playerUuid);
+                if (p != null) {
+                    p.hideBossBar(bar);
                 }
             }
         }
