@@ -159,6 +159,7 @@ public class FoliaCompatScheduler {
      */
     public static boolean isOwnedByCurrentRegion(@NotNull Location location) {
         if (!IS_FOLIA) return true;
+        if (location.getWorld() == null) return false;
         try {
             return Bukkit.isOwnedByCurrentRegion(location);
         } catch (Throwable t) {
@@ -170,7 +171,11 @@ public class FoliaCompatScheduler {
      * Runs a task asynchronously.
      */
     public void runAsync(@NotNull Runnable runnable) {
-        Bukkit.getAsyncScheduler().runNow(plugin, task -> runnable.run());
+        try {
+            Bukkit.getAsyncScheduler().runNow(plugin, task -> runnable.run());
+        } catch (NoSuchMethodError | Exception e) {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
+        }
     }
 
     /**

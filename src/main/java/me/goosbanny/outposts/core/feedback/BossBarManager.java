@@ -136,6 +136,9 @@ public class BossBarManager {
             try {
                 for (Entity e : center.getWorld().getNearbyEntities(center, renderDistanceBlocks, renderDistanceBlocks, renderDistanceBlocks, entity -> entity instanceof Player)) {
                     if (e instanceof Player p && p.isOnline() && !p.isDead()) {
+                        if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
+                            continue;
+                        }
                         candidates.add(p);
                     }
                 }

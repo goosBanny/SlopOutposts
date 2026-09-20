@@ -603,6 +603,9 @@ public class DefaultOutpostArena implements OutpostArena {
             Collection<Entity> entities = world.getNearbyEntities(box, e -> e instanceof Player);
             for (Entity e : entities) {
                 if (e instanceof Player p && p.isOnline() && !p.isDead()) {
+                    if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
+                        continue;
+                    }
                     nearbyCandidates.add(p);
                 }
             }
@@ -915,6 +918,9 @@ public class DefaultOutpostArena implements OutpostArena {
                 );
                 for (Entity e : oldWorld.getNearbyEntities(oldBox, entity -> entity instanceof Player)) {
                     if (e instanceof Player p && p.isOnline() && !p.isDead()) {
+                        if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
+                            continue;
+                        }
                         playersInOldZone.add(p);
                     }
                 }

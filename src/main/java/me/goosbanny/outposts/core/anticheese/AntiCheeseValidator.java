@@ -123,30 +123,32 @@ public class AntiCheeseValidator {
         if (config.isLineOfSight()) {
             Location center = arena.getCenterLocation();
             if (center != null && center.getWorld() != null && center.getWorld().equals(player.getWorld())) {
-                Location eyeLoc = player.getEyeLocation();
-                Vector direction = center.toVector().subtract(eyeLoc.toVector());
-                double distance = direction.length();
+                try {
+                    Location eyeLoc = player.getEyeLocation();
+                    Vector direction = center.toVector().subtract(eyeLoc.toVector());
+                    double distance = direction.length();
 
-                if (distance > 0.5) {
-                    direction.normalize();
-                    RayTraceResult result = center.getWorld().rayTraceBlocks(
-                            eyeLoc,
-                            direction,
-                            distance,
-                            FluidCollisionMode.NEVER,
-                            true
-                    );
+                    if (distance > 0.5) {
+                        direction.normalize();
+                        RayTraceResult result = center.getWorld().rayTraceBlocks(
+                                eyeLoc,
+                                direction,
+                                distance,
+                                FluidCollisionMode.NEVER,
+                                true
+                        );
 
-                    if (result != null && result.getHitBlock() != null) {
-                        Block block = result.getHitBlock();
-                        // Ignore non-occluding or passable decorative blocks (signs, banners, vines, tall grass)
-                        if (block.getType().isOccluding()) {
-                            Bukkit.getPluginManager().callEvent(new OutpostAntiCheeseTriggerEvent(
-                                    arena, player, OutpostAntiCheeseTriggerEvent.ViolationType.NO_LINE_OF_SIGHT
-                            ));
-                            return false;
+                        if (result != null && result.getHitBlock() != null) {
+                            Block block = result.getHitBlock();
+                            // Ignore non-occluding or passable decorative blocks (signs, banners, vines, tall grass)
+                            if (block.getType().isOccluding()) {
+                                fireViolationEvent(arena, player, OutpostAntiCheeseTriggerEvent.ViolationType.NO_LINE_OF_SIGHT);
+                                return false;
+                            }
                         }
                     }
+                } catch (Throwable ignored) {
+                    // Prevent cross-region boundary exceptions on Folia from aborting tick
                 }
             }
         }

@@ -133,6 +133,9 @@ public class ActionBarManager {
             );
             for (Entity e : world.getNearbyEntities(box, entity -> entity instanceof Player)) {
                 if (e instanceof Player p && p.isOnline() && !p.isDead()) {
+                    if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
+                        continue;
+                    }
                     candidates.add(p);
                 }
             }

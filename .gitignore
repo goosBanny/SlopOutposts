@@ -1,6 +1,7 @@
 # Gradle build and cache
 .gradle/
 build/
+bin/
 out/
 
 # IDE configurations
