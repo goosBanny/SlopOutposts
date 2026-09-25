@@ -93,7 +93,7 @@ Built from the ground up on SOLID principles, Outposts combines high-intensity t
 | `/outpost region shift <outpost> [reg_id]` | `outposts.admin` | Forces an immediate shift to a random or specific region |
 | `/outpost reload` | `outposts.admin` | Hot-reloads all configs without interrupting captures |
 | `/outpost doctor` | `outposts.admin` | Audits threading, hooks, and overlapping bounding boxes |
-| `/outpost forcestart <id>` | `outposts.admin` | Force unlocks and begins an outpost capture cycle |
+| `/outpost forcestart <id> [duration]` | `outposts.admin` | Force unlocks arena for duration seconds (default: 1800s / 30m; infinite for autoload) |
 | `/outpost forcestop <id>` | `outposts.admin` | Forces an outpost back to neutral |
 
 ---
@@ -115,6 +115,7 @@ Outposts registers the `%outpost_<...>%` placeholder identifier:
 | `%outpost_capping_team_<id>%` | `Spartans` | Name of active capturing faction |
 | `%outpost_capper_count_<id>%` | `3` | Number of cappers inside the pad |
 | `%outpost_time_controlled_<id>%` | `01:45:20` | Formatted holding duration |
+| `%outpost_time_remaining_<id>%` | `28:45` / `Infinite` | Formatted remaining active event duration |
 | `%outpost_lock_remaining_<id>%` | `04:15` | Remaining lockout countdown |
 | `%outpost_<id>_coords%` | `105, 65, 105` | Formatted center coordinates of active region |
 | `%outpost_<id>_x%` / `%y%` / `%z%` | `105` / `65` / `105` | Individual coordinate integers |

@@ -16,8 +16,24 @@ public record ArenaViewSnapshot(
         int capperCount,
         boolean isContested,
         long lockoutRemainingSeconds,
-        OccupancyMode occupancyMode
+        OccupancyMode occupancyMode,
+        long activeDurationRemainingSeconds
 ) implements ArenaView {
+
+    public ArenaViewSnapshot(
+            String id,
+            Component displayName,
+            ArenaState state,
+            double progress,
+            String controllerTeam,
+            String cappingTeam,
+            int capperCount,
+            boolean isContested,
+            long lockoutRemainingSeconds,
+            OccupancyMode occupancyMode
+    ) {
+        this(id, displayName, state, progress, controllerTeam, cappingTeam, capperCount, isContested, lockoutRemainingSeconds, occupancyMode, -1L);
+    }
 
     @Override
     public OccupancyMode getOccupancyMode() {
@@ -67,5 +83,10 @@ public record ArenaViewSnapshot(
     @Override
     public long getLockoutRemainingSeconds() {
         return lockoutRemainingSeconds;
+    }
+
+    @Override
+    public long getActiveDurationRemainingSeconds() {
+        return activeDurationRemainingSeconds;
     }
 }

@@ -33,9 +33,9 @@ public class BroadcastAction implements ArenaAction {
         String msg = messageTemplate;
         String prefix = Outposts.getInstance() != null && Outposts.getInstance().getLangManager() != null
                 ? Outposts.getInstance().getLangManager().getPrefix()
-                : "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> ";
+                : "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ";
         msg = msg.replace("<prefix>", prefix);
-        msg = msg.replace("<name>", MiniMessage.miniMessage().serialize(arena.getDisplayName()));
+        msg = msg.replace("<name>", MiniMessage.miniMessage().serialize(arena.getDisplayName()) + "<!bold>");
         msg = msg.replace("<id>", arena.getId());
 
         boolean isSolo = arena.getOccupancyMode() == OccupancyMode.SOLO;

@@ -112,6 +112,7 @@ public class DefaultOutpostArena implements OutpostArena {
     private final Random random = new Random();
     private boolean boundingParticlesEnabled = false;
     private String clearingTeamName = null;
+    private long activeDurationRemainingSeconds = -1;
 
     private Integer customBossbarRange = null;
     private Integer customBoundaryRenderDistance = null;
@@ -375,6 +376,7 @@ public class DefaultOutpostArena implements OutpostArena {
     public void setActive(boolean active) {
         this.active = active;
         if (!active) {
+            this.activeDurationRemainingSeconds = -1;
             this.state = ArenaState.LOCKED;
             Outposts plugin = Outposts.getInstance();
             if (plugin != null) {
@@ -416,6 +418,7 @@ public class DefaultOutpostArena implements OutpostArena {
         this.cappingTeamName = existing.getCappingTeamName();
         this.lockoutRemainingSeconds = existing.getLockoutRemainingSeconds();
         this.isContested = existing.isContested();
+        this.activeDurationRemainingSeconds = existing.getActiveDurationRemainingSeconds();
 
         if (existing instanceof DefaultOutpostArena def) {
             this.state = def.state;
@@ -492,7 +495,8 @@ public class DefaultOutpostArena implements OutpostArena {
                     capperCount,
                     isContested,
                     lockoutRemainingSeconds,
-                    occupancyMode
+                    occupancyMode,
+                    activeDurationRemainingSeconds
             ));
             snapshotDirty = false;
         }
@@ -575,6 +579,7 @@ public class DefaultOutpostArena implements OutpostArena {
         this.controllerTeamId = teamId;
         this.controllerTeamName = teamName;
         this.cappingTeamId = null;
+        this.cappingTeamName = null;
         if (mechanicsConfig.getMode() != CaptureModeType.TUG_OF_WAR) {
             this.progress = 100.0;
         }
@@ -582,7 +587,8 @@ public class DefaultOutpostArena implements OutpostArena {
         this.timeControlledSeconds = 0;
         this.invaderHoldSeconds = 0;
         this.lockoutRemainingSeconds = mechanicsConfig.getLockoutSeconds();
-        this.lastAnnouncedMilestone = 0;
+        // Set to 100 so milestones don't re-fire while the pad is being knocked down
+        this.lastAnnouncedMilestone = 100;
 
         reusableContext.clear();
         reusableContext.put("team", teamName);
@@ -636,6 +642,23 @@ public class DefaultOutpostArena implements OutpostArena {
         }
 
         tickCounter++;
+
+        // Active Duration: Countdown for force-started or timed events
+        if (activeDurationRemainingSeconds > 0) {
+            activeDurationRemainingSeconds--;
+            if (activeDurationRemainingSeconds <= 0) {
+                activeDurationRemainingSeconds = -1;
+                setActive(false);
+                Outposts plugin = Outposts.getInstance();
+                if (plugin != null) {
+                    Map<String, String> tokens = new HashMap<>();
+                    tokens.put("name", miniMessage.serialize(getDisplayName()));
+                    tokens.put("winner", controllerTeamName != null ? controllerTeamName : "None");
+                    Bukkit.broadcast(plugin.getLangManager().get("broadcasts.event_ended", this, tokens));
+                }
+                return;
+            }
+        }
 
         // Dynamic Shifting: Activation grace / warmup period
         if (activationGraceRemainingSeconds > 0) {
@@ -824,7 +847,8 @@ public class DefaultOutpostArena implements OutpostArena {
         }
 
         // 7. Milestone Broadcasts (25%, 50%, 75%)
-        if (cappingTeamName != null && progress > 0.0 && lastAnnouncedMilestone < 75) {
+        // Only fires while a neutral pad is actively being captured upward (not while a controlled pad is being knocked down)
+        if (controllerTeamId == null && cappingTeamName != null && progress > 0.0 && lastAnnouncedMilestone < 75) {
             int[] milestones = {25, 50, 75};
             for (int m : milestones) {
                 if (progress >= m && lastAnnouncedMilestone < m) {
@@ -854,19 +878,34 @@ public class DefaultOutpostArena implements OutpostArena {
                 }
             }
         }
-        if (progress < lastAnnouncedMilestone - 5.0) {
+        // If progress fell significantly, allow re-announcing that milestone if the capture resumes
+        if (controllerTeamId == null && progress < lastAnnouncedMilestone - 5.0) {
             lastAnnouncedMilestone = (int) (progress / 25) * 25;
         }
 
-        // 8. Anti-Jitter Hysteresis Buffer
-        // If controlled, defending team retains control until progress drops below (100.0 - hysteresisBufferPercent)
+        // 8. lose_control_threshold early-loss shortcut + Hysteresis Buffer
+        // Only activates when lose_control_threshold is configured BELOW 100.0.
+        // At the default 100.0, defenders keep control until progress hits 0%, which
+        // StandardHillEngine.evaluateCapture() and handleAbandonment() already handle correctly.
+        // Example: threshold=10.0, buffer=2.0 → defender loses control once progress drops below 8.0%.
         if (controllerTeamId != null) {
-            double threshold = mechanicsConfig.getLoseControlThreshold() - mechanicsConfig.getHysteresisBufferPercent();
-            if (progress <= 0.0) {
-                resetToNeutral();
-            } else if (progress < threshold && !isContested && cappingTeamId != null && !cappingTeamId.equals(controllerTeamId)) {
-                // Invader knocked below hysteresis threshold
+            double threshold = mechanicsConfig.getLoseControlThreshold();
+            if (threshold < 100.0 - 1e-4) {
+                double effectiveThreshold = threshold - mechanicsConfig.getHysteresisBufferPercent();
+                if (cappingTeamId != null && !cappingTeamId.equalsIgnoreCase(controllerTeamId)
+                        && progress < effectiveThreshold) {
+                    // Invader knocked below configured threshold — defender loses control early
+                    String invaderId = cappingTeamId;
+                    String invaderName = cappingTeamName;
+                    double savedProgress = Math.max(0.0, progress);
+                    resetToNeutral();
+                    // Preserve progress position and pass the pad to the invader
+                    this.progress = savedProgress;
+                    this.cappingTeamId = invaderId;
+                    this.cappingTeamName = invaderName;
+                }
             }
+            // Note: progress <= 0 case is handled inside StandardHillEngine and handleAbandonment()
         }
 
         // 8. Update State
@@ -1160,5 +1199,21 @@ public class DefaultOutpostArena implements OutpostArena {
         Bukkit.getPluginManager().callEvent(shiftEvent);
 
         updateSnapshot();
+    }
+
+    @Override
+    public long getActiveDurationRemainingSeconds() {
+        return activeDurationRemainingSeconds;
+    }
+
+    @Override
+    public void setActiveDurationRemainingSeconds(long seconds) {
+        this.activeDurationRemainingSeconds = seconds;
+        updateSnapshot();
+    }
+
+    @Override
+    public boolean isAutoStart() {
+        return mechanicsConfig != null && mechanicsConfig.isAutoStart();
     }
 }

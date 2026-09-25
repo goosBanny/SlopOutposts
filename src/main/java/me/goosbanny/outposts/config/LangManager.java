@@ -17,13 +17,15 @@ import java.util.Map;
 /**
  * Manages plugin localization, configurable messages, and PlaceholderAPI token formatting.
  */
+import java.util.concurrent.ConcurrentHashMap;
+
 public class LangManager {
 
     private final Plugin plugin;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
-    private final Map<String, Component> staticComponentCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, Component> staticComponentCache = new ConcurrentHashMap<>();
     private YamlConfiguration langConfig;
-    private String prefix = "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> ";
+    private String prefix = "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ";
 
     public LangManager(@NotNull Plugin plugin) {
         this.plugin = plugin;
@@ -52,7 +54,7 @@ public class LangManager {
         }
 
         this.langConfig = YamlConfiguration.loadConfiguration(file);
-        this.prefix = langConfig.getString("prefix", "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> ");
+        this.prefix = langConfig.getString("prefix", "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ");
         this.staticComponentCache.clear();
     }
 

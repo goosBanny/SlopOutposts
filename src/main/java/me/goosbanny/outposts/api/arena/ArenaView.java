@@ -56,4 +56,11 @@ public interface ArenaView {
      * Occupancy mode: TEAM or SOLO.
      */
     OccupancyMode getOccupancyMode();
+
+    /**
+     * Active duration remaining in seconds before auto-stopping, or -1 if infinite/no limit.
+     */
+    default long getActiveDurationRemainingSeconds() {
+        return -1;
+    }
 }

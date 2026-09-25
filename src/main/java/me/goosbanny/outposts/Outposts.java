@@ -327,7 +327,11 @@ public final class Outposts extends JavaPlugin {
                 OutpostArena arena = arenaSerializer.loadFromFile(file);
                 if (arena != null) {
                     if (arena instanceof DefaultOutpostArena def) {
-                        arena.setActive(def.getMechanicsConfig().isAutoStart());
+                        boolean auto = def.getMechanicsConfig().isAutoStart();
+                        arena.setActive(auto);
+                        if (auto) {
+                            def.setActiveDurationRemainingSeconds(-1);
+                        }
                     } else {
                         arena.setActive(false);
                     }

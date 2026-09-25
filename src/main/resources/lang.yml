@@ -4,8 +4,8 @@
 # ==============================================================================
 
 # Global chat prefix prepended to all plugin communications
-# Brand Pink (#F07DB5) bold title followed by gray separator ▶
-prefix: "<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> "
+# Brand Red (#E13148) bold title followed by gray separator ▶
+prefix: "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> "
 
 # In-game command feedback, alerts, and operational messages
 commands:
@@ -20,7 +20,7 @@ commands:
   teleported: "<prefix><#00F878>✔ Teleported to outpost '<white>%id%</white>'!</#00F878>"
   no_warp: "<prefix><#E13148>No valid warp or spawn location found for outpost '<white>%id%</white>'.</#E13148>"
   reloaded: "<prefix><#00F878>✔ Configurations and arenas reloaded successfully without desyncing state!</#00F878>"
-  forcestarted: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' has been force started!</#00F878>"
+  forcestarted: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' force started (<yellow>%duration%</yellow>)!</#00F878>"
   forcestopped: "<prefix><#00F878>✔ Outpost '<white>%id%</white>' has been reset to neutral.</#00F878>"
   wand_given: "<prefix><#00F878>✔ Setup wand added to your inventory! Left/right click blocks to set corners.</#00F878>"
   wand_pos1: "<prefix><#CECECE>Corner 1 set to <#00B8FF>%x%, %y%, %z%</#00B8FF></#CECECE>"
@@ -67,13 +67,13 @@ telemetry:
 
 # Milestone progress & scheduled event broadcasts
 broadcasts:
-  milestone: "<prefix><white>The <#98fc98>%team%</#98fc98> team reached <#FF6C00>%milestone%%</#FF6C00> progress on <white>%name%</white>!</white>"
-  milestone_solo: "<prefix><white>Player <#98fc98>%player%</#98fc98> reached <#FF6C00>%milestone%%</#FF6C00> progress on <white>%name%</white>!</white>"
-  event_started: "<prefix><white>The <#F07DB5>%name%</#F07DB5> territory event has officially <#00F878>OPENED</#00F878> for capture!</white>"
-  event_overtime: "<prefix><white>The <#F07DB5>%name%</#F07DB5> event is contested and entered <#E13148>OVERTIME</#E13148>!</white>"
-  event_concluded: "<prefix><white>The <#F07DB5>%name%</#F07DB5> event has <#FFFF55>CONCLUDED</#FFFF55>! Final Controller: <#00F878>%winner%</#00F878></white>"
-  shifted: "<prefix><white>The <#F07DB5>%name%</#F07DB5> outpost shifted to <#FDC05C>%region%</#FDC05C> <dark_gray>(<#00B8FF>%coords%</#00B8FF>)</dark_gray>!</white>"
-  shift_warning: "<prefix><white>The <#F07DB5>%name%</#F07DB5> outpost will relocate in <#FFFF55>%seconds%s</#FFFF55>!</white>"
+  milestone: "<prefix><white>The <#98fc98>%team%</#98fc98> team reached <#FF6C00>%milestone%%</#FF6C00> progress on %name%<!bold><white>!</white>"
+  milestone_solo: "<prefix><white>Player <#98fc98>%player%</#98fc98> reached <#FF6C00>%milestone%%</#FF6C00> progress on %name%<!bold><white>!</white>"
+  event_started: "<prefix><white>The %name%<!bold><white> territory event has officially <#00F878><bold>OPENED</bold></#00F878><!bold><white> for capture!</white>"
+  event_overtime: "<prefix><white>The %name%<!bold><white> event is contested and entered <#E13148><bold>OVERTIME</bold></#E13148><!bold><white>!</white>"
+  event_concluded: "<prefix><white>The %name%<!bold><white> event has <#FFFF55><bold>CONCLUDED</bold></#FFFF55><!bold><white>! Final Controller: <#00F878>%winner%</#00F878>!</white>"
+  shifted: "<prefix><white>The %name%<!bold><white> outpost shifted to <#FDC05C>%region%</#FDC05C><!bold><white> <dark_gray>(<#00B8FF>%coords%</#00B8FF>)</dark_gray>!</white>"
+  shift_warning: "<prefix><white>The %name%<!bold><white> outpost will relocate in <#FFFF55>%seconds%s</#FFFF55>!</white>"
 
 # PlaceholderAPI Custom Fallback & Status Resolution Values
 placeholders:

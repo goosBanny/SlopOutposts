@@ -2,6 +2,7 @@ package me.goosbanny.outposts.api.arena;
 
 import me.goosbanny.outposts.core.arena.ArenaRegion;
 import me.goosbanny.outposts.core.arena.DynamicLocationConfig;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,7 +26,7 @@ public interface OutpostArena extends ArenaDescriptor {
      * Pre-serialized MiniMessage string of the arena display name for zero-allocation HUD rendering.
      */
     default String getSerializedDisplayName() {
-        return net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().serialize(getDisplayName());
+        return MiniMessage.miniMessage().serialize(getDisplayName());
     }
 
     /**
@@ -206,4 +207,23 @@ public interface OutpostArena extends ArenaDescriptor {
     boolean isBoundingParticlesEnabled();
 
     void setBoundingParticlesEnabled(boolean enabled);
+
+    /**
+     * Returns remaining active seconds before auto-stopping, or -1 if infinite/no limit.
+     */
+    default long getActiveDurationRemainingSeconds() {
+        return -1;
+    }
+
+    /**
+     * Sets remaining active seconds before auto-stopping, or -1 for infinite/no limit.
+     */
+    default void setActiveDurationRemainingSeconds(long seconds) {}
+
+    /**
+     * Returns true if this outpost is configured to autoload/auto-start infinitely.
+     */
+    default boolean isAutoStart() {
+        return false;
+    }
 }

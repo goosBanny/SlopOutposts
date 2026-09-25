@@ -13,7 +13,7 @@ meta:
   # Display name parsed via Adventure MiniMessage formatting.
   # Value Type: MiniMessage string.
   # Displayed in chat announcements, GUI menus, and scoreboards.
-  name: <#F07DB5><bold>Outpost</bold></#F07DB5>
+  name: <#E13148><bold>Outpost</bold></#E13148>
   
   # Material identifier for the menu/GUI icon.
   # Value Type: Bukkit Material enum name (e.g. NETHERITE_SWORD, BEACON, IRON_BLOCK).
@@ -225,7 +225,7 @@ actions:
   # Actions executed immediately when an outpost is successfully captured (progress reaches 100%).
   on_capture:
   - type: BROADCAST
-    message: <prefix><white>The <#98fc98><team></#98fc98> faction has captured <#F07DB5><name></#F07DB5>!</white>
+    message: <prefix><white>The <#98fc98><team></#98fc98> faction has captured <name>!</white>
   - type: COMMAND_CONSOLE_PER_PLAYER
     command: eco give %player% 5000
   - type: TEAM_BANK_DEPOSIT
@@ -234,14 +234,13 @@ actions:
   # Actions executed immediately when the controlling team loses ownership (progress reaches 0%).
   on_lost:
   - type: BROADCAST
-    message: <prefix><white>The <#98fc98><team></#98fc98> faction lost control of
-      <#F07DB5><name></#F07DB5>!</white>
+    message: <prefix><white>The <#98fc98><team></#98fc98> faction lost control of <name>!</white>
   
   # Actions executed when an opposing team contests the outpost capture pad.
   on_contest:
   - type: TITLE
     title: <#E13148><bold>OUTPOST UNDER ATTACK</bold></#E13148>
-    subtitle: <#CECECE>Enemy forces are contesting <#F07DB5><name></#F07DB5>!</#CECECE>
+    subtitle: <#CECECE>Enemy forces are contesting <name>!</#CECECE>
     target: DEFENDING_TEAM
   
   # Periodic interval reward actions distributed to the controlling faction.
@@ -338,7 +337,7 @@ dynamic_locations:
   # Chance for region R = (weight of R / sum of all weights in list).
   regions:
   - id: region_one
-    name: <#F07DB5>Primary Citadel</#F07DB5>
+    name: <#E13148>Primary Citadel</#E13148>
     weight: 50
     world: world
     min:

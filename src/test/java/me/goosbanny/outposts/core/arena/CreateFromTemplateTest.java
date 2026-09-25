@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CreateFromTemplateTest {
@@ -54,7 +55,24 @@ public class CreateFromTemplateTest {
         assertTrue(content.contains("standard_hill:"));
         assertTrue(content.contains("tug_of_war:"));
         assertTrue(content.contains("ticket_accumulation:"));
+        assertTrue(content.contains("name: <#E13148><bold>Citadel Outpost</bold></#E13148>"));
         assertTrue(content.contains("neutral_anchor_percent: 50.0"));
         assertTrue(content.contains("contested_advantage_scaling: 0.5"));
+
+        File outpostTarget = tempDir.resolve("outpost.yml").toFile();
+        serializer.createFromTemplate(
+                dummyTemplate,
+                outpostTarget,
+                "outpost",
+                "custom_world",
+                0, 60, 0,
+                10, 80, 10,
+                new Location(null, 0.5, 65.0, 0.5, 0.0f, 0.0f),
+                OccupancyMode.SOLO,
+                CaptureModeType.STANDARD_HILL
+        );
+        String outpostContent = Files.readString(outpostTarget.toPath());
+        assertTrue(outpostContent.contains("name: <#E13148><bold>Outpost</bold></#E13148>"));
+        assertFalse(outpostContent.contains("Outpost Outpost"));
     }
 }

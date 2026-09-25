@@ -90,7 +90,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage(mm.deserialize("<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> <#FDC05C>Outposts Commands</#FDC05C>"));
+        sender.sendMessage(mm.deserialize("<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> <#FDC05C>Outposts Commands</#FDC05C>"));
         sender.sendMessage(mm.deserialize("<gray>● <#00B8FF>/outpost list</#00B8FF> <dark_gray>-</dark_gray> <#CECECE>View all outposts and capture status</#CECECE>"));
         sender.sendMessage(mm.deserialize("<gray>● <#00B8FF>/outpost info <id></#00B8FF> <dark_gray>-</dark_gray> <#CECECE>View detailed status of an outpost</#CECECE>"));
         sender.sendMessage(mm.deserialize("<gray>● <#00B8FF>/outpost tp <id></#00B8FF> <dark_gray>-</dark_gray> <#CECECE>Teleport to outpost warp</#CECECE>"));
@@ -103,7 +103,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost region <add|remove|list|setweight|shift></#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Manage dynamic regions</#CECECE>"));
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost reload</#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Non-destructive reload of configs</#CECECE>"));
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost doctor</#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Audit system & bounding boxes</#CECECE>"));
-            sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost forcestart <id></#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Force unlock arena</#CECECE>"));
+            sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost forcestart <id> [duration]</#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Force unlock arena (default: 30m / 1800s)</#CECECE>"));
             sender.sendMessage(mm.deserialize("<gray>● <#FDC05C>/outpost forcestop <id></#FDC05C> <dark_gray>-</dark_gray> <#CECECE>Force reset arena to neutral</#CECECE>"));
         }
     }
@@ -141,7 +141,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        sender.sendMessage(mm.deserialize("<#F07DB5><bold>OUTPOSTS</bold></#F07DB5> <gray>▶</gray> <#FDC05C>Outpost Details: <white>" + mm.escapeTags(arena.getId()) + "</white></#FDC05C>"));
+        sender.sendMessage(mm.deserialize("<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> <#FDC05C>Outpost Details: <white>" + mm.escapeTags(arena.getId()) + "</white></#FDC05C>"));
         sender.sendMessage(mm.deserialize("<gray>● <#CECECE>Display Name: </#CECECE>").append(arena.getDisplayName()));
         sender.sendMessage(mm.deserialize("<gray>● <#CECECE>World: <white>" + mm.escapeTags(arena.getWorldName()) + "</white></#CECECE>"));
         sender.sendMessage(mm.deserialize("<gray>● <#CECECE>Bounds: <#00B8FF>" + arena.getMinX() + "," + arena.getMinY() + "," + arena.getMinZ()
@@ -354,7 +354,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(mm.deserialize("<red>Usage: /outpost forcestart <id></red>"));
+            sender.sendMessage(mm.deserialize("<red>Usage: /outpost forcestart <id> [durationSeconds]</red>"));
             return;
         }
         OutpostArena arena = plugin.getArenaManager().getArena(args[1]);
@@ -362,12 +362,52 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(langManager.get("commands.outpost_not_found", Map.of("id", args[1])));
             return;
         }
+
+        long durationSeconds;
+        if (args.length >= 3) {
+            String durStr = args[2].toLowerCase();
+            if (durStr.equals("infinite") || durStr.equals("-1") || durStr.equals("0")) {
+                durationSeconds = -1;
+            } else {
+                try {
+                    durationSeconds = Long.parseLong(durStr);
+                    if (durationSeconds <= 0) {
+                        durationSeconds = -1;
+                    }
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(mm.deserialize("<red>Duration must be a positive number of seconds (e.g. 1800) or 'infinite'.</red>"));
+                    return;
+                }
+            }
+        } else {
+            if (arena instanceof DefaultOutpostArena def && def.getMechanicsConfig().isAutoStart()) {
+                durationSeconds = -1;
+            } else {
+                durationSeconds = 1800; // 30 minutes default
+            }
+        }
+
         arena.setActive(true);
         arena.setProgress(0.0);
         if (arena instanceof DefaultOutpostArena def) {
             def.setLockoutRemainingSeconds(0);
+            def.setActiveDurationRemainingSeconds(durationSeconds);
         }
-        sender.sendMessage(langManager.get("commands.forcestarted", Map.of("id", arena.getId())));
+
+        String formattedDuration;
+        if (durationSeconds > 0) {
+            long mins = durationSeconds / 60;
+            long remSecs = durationSeconds % 60;
+            formattedDuration = mins > 0 && remSecs == 0 ? mins + "m" : (mins > 0 ? mins + "m " + remSecs + "s" : remSecs + "s");
+        } else {
+            formattedDuration = "infinite";
+        }
+
+        sender.sendMessage(langManager.get("commands.forcestarted", arena, Map.of(
+                "id", arena.getId(),
+                "duration", formattedDuration,
+                "seconds", String.valueOf(durationSeconds)
+        )));
     }
 
     private void handleForceStop(CommandSender sender, String[] args) {
@@ -383,6 +423,9 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
         if (arena == null) {
             sender.sendMessage(langManager.get("commands.outpost_not_found", Map.of("id", args[1])));
             return;
+        }
+        if (arena instanceof DefaultOutpostArena def) {
+            def.setActiveDurationRemainingSeconds(-1);
         }
         arena.setActive(false);
         arena.resetToNeutral();
@@ -621,6 +664,9 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             }
         }
         if (args.length == 3) {
+            if ("forcestart".equalsIgnoreCase(args[0]) && sender.hasPermission("outposts.admin")) {
+                return filter(List.of("300", "600", "900", "1800", "3600", "infinite"), args[2]);
+            }
             if ("create".equalsIgnoreCase(args[0]) && sender.hasPermission("outposts.admin")) {
                 return filter(List.of("SOLO", "TEAM"), args[2]);
             }

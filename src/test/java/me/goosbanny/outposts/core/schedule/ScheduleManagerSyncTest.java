@@ -76,6 +76,10 @@ public class ScheduleManagerSyncTest {
         @Override public Map<String, String> getCustomLangOverrides() { return Collections.emptyMap(); }
         @Override public void setCustomLangOverrides(Map<String, String> overrides) {}
         @Override public String getCustomLang(String path) { return null; }
+
+        private boolean autoStart = false;
+        public void setAutoStart(boolean autoStart) { this.autoStart = autoStart; }
+        @Override public boolean isAutoStart() { return autoStart; }
     }
 
     @Test
@@ -103,5 +107,33 @@ public class ScheduleManagerSyncTest {
 
         scheduleManager.syncArenaState(arena);
         assertFalse(arena.isActive(), "Arena governed by inactive schedule should remain inactive / locked");
+    }
+
+    @Test
+    @DisplayName("Test ScheduleManager: Autoload arena remains active infinitely")
+    public void testSyncArenaAutoloadRemainsActive() throws Exception {
+        SpatialGridManager spatial = new SpatialGridManager();
+        ArenaManager arenaManager = new ArenaManager(spatial, null);
+        DummyArena arena = new DummyArena("south");
+        arena.setActive(true);
+        arena.setAutoStart(true);
+        arenaManager.registerArena(arena);
+
+        ScheduleManager scheduleManager = new ScheduleManager(arenaManager, new LangManager(null), Logger.getAnonymousLogger());
+
+        String yamlStr = """
+        schedules:
+          weekend_war:
+            arena: "south"
+            cron: "0 0 1 1 *"
+            duration_minutes: 60
+            overtime:
+              enabled: false
+        """;
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(new StringReader(yamlStr));
+        scheduleManager.loadSchedules(config);
+
+        scheduleManager.syncArenaState(arena);
+        assertTrue(arena.isActive(), "Autoload arena should remain active even if outside schedule window");
     }
 }

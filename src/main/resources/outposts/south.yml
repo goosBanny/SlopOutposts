@@ -9,7 +9,7 @@ id: "south"
 # Display metadata and GUI icons
 meta:
   # Display name rendered with Adventure MiniMessage format (supports hex colors and gradients)
-  name: "<#F07DB5><bold>South Outpost</bold></#F07DB5>"
+  name: "<#E13148><bold>South Outpost</bold></#E13148>"
   # Material item icon shown in menus and GUIs
   icon: "NETHERITE_SWORD"
 

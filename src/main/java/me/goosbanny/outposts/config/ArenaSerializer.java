@@ -181,7 +181,7 @@ public class ArenaSerializer {
 
         // 3. Mechanics
         boolean enabled = yaml.getBoolean("mechanics.enabled", true);
-        boolean autoStart = yaml.getBoolean("mechanics.auto_start", false);
+        boolean autoStart = yaml.getBoolean("mechanics.auto_start", yaml.getBoolean("mechanics.autoload", false));
         String occModeStr = yaml.getString("mechanics.occupancy_mode", yaml.getString("mechanics.team_mode", yaml.getString("occupancy_mode", "TEAM")));
         OccupancyMode occupancyMode = OccupancyMode.fromString(occModeStr);
         String modeStr = yaml.getString("mechanics.mode", "STANDARD_HILL").toUpperCase();
@@ -740,6 +740,7 @@ public class ArenaSerializer {
 
         if (templateContent != null && !templateContent.isBlank()) {
             String capitalizedId = !id.isEmpty() ? (id.substring(0, 1).toUpperCase() + id.substring(1)) : id;
+            String nameDisplay = capitalizedId.toLowerCase().endsWith("outpost") ? capitalizedId : capitalizedId + " Outpost";
             double wx = Math.round(warpLoc.getX() * 10.0) / 10.0;
             double wy = Math.round(warpLoc.getY() * 10.0) / 10.0;
             double wz = Math.round(warpLoc.getZ() * 10.0) / 10.0;
@@ -749,7 +750,7 @@ public class ArenaSerializer {
             // Perform targeted regex replacements to preserve 100% of inline comments and documentation
             String customized = templateContent
                     .replaceAll("(?m)^id:\\s*.*$", "id: " + id)
-                    .replaceAll("(?m)^(\\s*name:\\s*).*$", "$1<#F07DB5><bold>" + capitalizedId + " Outpost</bold></#F07DB5>")
+                    .replaceAll("(?m)^(\\s*name:\\s*).*$", "$1<#E13148><bold>" + nameDisplay + "</bold></#E13148>")
                     .replaceAll("(?m)^(\\s*world:\\s*).*$", "$1" + worldName)
                     .replaceAll("(?m)^(\\s*occupancy_mode:\\s*).*$", "$1" + occupancyMode.name())
                     .replaceAll("(?m)^(\\s*mode:\\s*).*$", "$1" + captureMode.name());
@@ -791,7 +792,8 @@ public class ArenaSerializer {
         }
         yaml.set("id", id);
         String capitalizedId = !id.isEmpty() ? (id.substring(0, 1).toUpperCase() + id.substring(1)) : id;
-        yaml.set("meta.name", "<#F07DB5><bold>" + capitalizedId + "</bold></#F07DB5>");
+        String nameDisplay = capitalizedId.toLowerCase().endsWith("outpost") ? capitalizedId : capitalizedId + " Outpost";
+        yaml.set("meta.name", "<#E13148><bold>" + nameDisplay + "</bold></#E13148>");
         yaml.set("geometry.world", worldName);
         yaml.set("geometry.min.x", minX);
         yaml.set("geometry.min.y", minY);

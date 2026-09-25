@@ -96,6 +96,7 @@ Optional per-outpost overrides for capture zone combat rules (falls back to `con
 - `prevent_block_place`: Prevents placing blocks (e.g. lava, cobwebs, obsidian) on the pad.
 
 ### 5. `mechanics`
+- **`auto_start` / `autoload`**: When `true`, arena activates automatically on load and runs infinitely until manually stopped with `/outpost forcestop`.
 - **`occupancy_mode`**: `TEAM` (controlled by whole clans/factions) or `SOLO` (individual player free-for-all).
 - **`percent_per_second`**: Base capture percentage change per second (e.g. 2.5% = 40s base capture time).
 - **`uncapture_percent_per_second`**: Base percentage deducted per second when an invading team knocks down enemy progress (100% -> 0%).

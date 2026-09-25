@@ -11,6 +11,7 @@ import me.goosbanny.outposts.core.feedback.ActionBarManager;
 import me.goosbanny.outposts.core.manager.ArenaManager;
 import me.goosbanny.outposts.core.manager.SpatialGridManager;
 import me.goosbanny.outposts.core.schedule.ScheduleManager;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -212,7 +213,7 @@ public class OutpostsPlaceholderExpansion extends PlaceholderExpansion {
                 return arena.getCurrentRegion() != null ? arena.getCurrentRegion().getId() : "default";
             case "current_region_name", "region", "region_name":
                 return arena.getCurrentRegion() != null
-                        ? net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().serialize(arena.getCurrentRegion().getDisplayName())
+                        ? MiniMessage.miniMessage().serialize(arena.getCurrentRegion().getDisplayName())
                         : "Default";
             case "next_shift_seconds":
                 return arena.getNextShiftSeconds() >= 0 ? String.valueOf(arena.getNextShiftSeconds()) : "-1";
@@ -226,6 +227,10 @@ public class OutpostsPlaceholderExpansion extends PlaceholderExpansion {
                 return String.valueOf(arena.getActivationGraceRemainingSeconds());
             case "is_warming_up":
                 return arena.isWarmingUp() ? boolTrue : boolFalse;
+            case "time_remaining", "duration_remaining", "active_duration":
+                long dur = view.getActiveDurationRemainingSeconds();
+                if (dur < 0) return arena.isActive() ? "Infinite" : none;
+                return formatDuration(dur);
             default:
                 return null;
         }

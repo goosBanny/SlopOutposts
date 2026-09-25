@@ -172,6 +172,10 @@ public class ScheduleManager {
      * If the arena is not governed by any schedule and autoStart is true, it remains active.
      */
     public void syncArenaState(@NotNull OutpostArena arena) {
+        if (arena.isAutoStart()) {
+            arena.setActive(true);
+            return;
+        }
         ScheduleEntry entry = arenaIdIndex.get(arena.getId().toLowerCase());
         if (entry != null) {
             arena.setActive(entry.isActive());
@@ -253,7 +257,9 @@ public class ScheduleManager {
         entry.active = false;
         entry.inOvertime = false;
         entry.calculateNextStart();
-        arena.setActive(false);
+        if (!arena.isAutoStart()) {
+            arena.setActive(false);
+        }
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("name", miniMessage.serialize(arena.getDisplayName()));
