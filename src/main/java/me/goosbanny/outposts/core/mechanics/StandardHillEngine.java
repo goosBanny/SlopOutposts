@@ -113,6 +113,10 @@ public class StandardHillEngine implements CaptureModeEngine {
         } else if (isControllerOrAlly) {
             // Defending team or their ally is recovering damaged progress back to 100%
             if (currentProgress < 100.0) {
+                // Clear any tracked attacker — defender is actively healing
+                if (arena.getCappingTeamId() != null) {
+                    arena.setCappingTeam(null, null);
+                }
                 double newProgress = Math.min(100.0, currentProgress + step);
                 arena.setProgress(newProgress);
             }
@@ -121,11 +125,14 @@ public class StandardHillEngine implements CaptureModeEngine {
             if (arena instanceof DefaultOutpostArena defArena && defArena.isKnockDelayActive()) {
                 return; // Grace delay active before knockdown begins
             }
+            // Track the active attacker so tickGameLoop section 8 can enforce lose_control_threshold
+            arena.setCappingTeam(cappingTeamId, cappingTeamName);
+
             double newProgress = Math.max(0.0, currentProgress - uncaptureStep);
             arena.setProgress(newProgress);
 
             if (newProgress <= EPSILON) {
-                // Controller lost ownership! Outpost resets to neutral
+                // Controller lost ownership — outpost resets to neutral
                 arena.resetToNeutral();
                 if (arena instanceof DefaultOutpostArena defArena) {
                     defArena.setCappingTeam(cappingTeamId, cappingTeamName);

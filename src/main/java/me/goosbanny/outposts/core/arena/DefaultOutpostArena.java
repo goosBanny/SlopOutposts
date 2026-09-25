@@ -838,6 +838,13 @@ public class DefaultOutpostArena implements OutpostArena {
 
         // 6. Capture Mechanics evaluation
         if (validCappers.isEmpty()) {
+            // If the pad is controlled and nobody is on it, clear any stale tracked attacker.
+            // An invader may have left mid-knockdown; we don't want the old capping ID to
+            // falsely trigger the lose_control_threshold check this tick.
+            if (controllerTeamId != null && cappingTeamId != null) {
+                this.cappingTeamId = null;
+                this.cappingTeamName = null;
+            }
             captureEngine.handleAbandonment(this);
         } else {
             captureEngine.evaluateCapture(this, validCappers, this.isContested);

@@ -141,15 +141,17 @@ public class OutpostLifecycleTest {
 
         arena.setController("Vikings", "Viking Clan", UUID.randomUUID());
 
-        // Bob knocks 100 → 70
+        // Bob knocks 100 → 70, engine sets cappingTeamId to "Spartans"
         for (int i = 0; i < 3; i++) engine.evaluateCapture(arena, List.of(bob), false);
         assertEquals(70.0, arena.getProgress(), 0.001);
         assertEquals("Vikings", arena.getControllerTeamId());
+        assertEquals("Spartans", arena.getCappingTeamId(), "engine must track invader during knockdown");
 
-        // Alice heals 70 → 100 (3 ticks)
+        // Alice heals 70 → 100: engine clears cappingTeam on defender heal path
         for (int i = 0; i < 3; i++) engine.evaluateCapture(arena, List.of(alice), false);
         assertEquals(100.0, arena.getProgress(), 0.001);
         assertEquals("Vikings", arena.getControllerTeamId());
+        assertNull(arena.getCappingTeamId(), "attacker must be cleared when defender heals");
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -285,7 +287,7 @@ public class OutpostLifecycleTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    @DisplayName("10. lose_control_threshold=30.0 — defender loses control when knocked below 28%")
+    @DisplayName("10. lose_control_threshold=30.0 — engine tracks invader; control stripped by section 8 below 28%")
     public void earlyThreshold_DefenderLosesControlAboveZero() {
         // threshold=30.0, buffer=2.0 → effective=28.0
         ArenaMechanicsConfig threshCfg = new ArenaMechanicsConfig(
@@ -298,24 +300,66 @@ public class OutpostLifecycleTest {
 
         arena.setController("Vikings", "Viking Clan", UUID.randomUUID());
 
-        // Knock 100 → 30 (7 ticks)
+        // Knock 100 → 30 (7 ticks) — engine now sets cappingTeamId on every knockdown tick
         for (int i = 0; i < 7; i++) engine.evaluateCapture(arena, List.of(bob), false);
         assertEquals(30.0, arena.getProgress(), 0.001);
         assertEquals("Vikings", arena.getControllerTeamId(), "still in control at exactly 30%");
+        assertEquals("Spartans", arena.getCappingTeamId(),
+                "engine must track invader via setCappingTeam during knockdown");
 
-        // Set Bob as capper so threshold can identify invader
-        arena.setCappingTeam("Spartans", "Spartan Clan");
-
-        // Knock one more tick → 20, below effective threshold 28
+        // One more tick → 20%, now below effective threshold (28%)
         engine.evaluateCapture(arena, List.of(bob), false);
         assertEquals(20.0, arena.getProgress(), 0.001);
 
-        // Simulate tickGameLoop section 8
+        // Simulate tickGameLoop section 8 — now has cappingTeamId set by engine
         arena.applyEarlyThresholdCheck();
 
         assertNull(arena.getControllerTeamId(), "control must be stripped below threshold");
         assertEquals("Spartans", arena.getCappingTeamId(), "pad handed to invader");
-        assertEquals(20.0, arena.getProgress(), 0.001, "progress preserved at point of threshold breach");
+        assertEquals(20.0, arena.getProgress(), 0.001, "progress preserved at threshold breach");
+    }
+
+    @Test
+    @DisplayName("10b. lose_control_threshold=10.0 — control not stripped at 90%, 10%, stripped below 8%")
+    public void earlyThreshold_OnlyStripsAtCorrectDepth() {
+        // Mirrors the user's reported scenario: threshold=10.0, buffer=2.0 → effective=8.0
+        // Use pps=5.0 so knockdown lands on 90, 10, then 5 (below 8, but above 0)
+        ArenaMechanicsConfig threshCfg = new ArenaMechanicsConfig(
+                true, CaptureModeType.STANDARD_HILL,
+                5.0, 0.0, 4, true, 10.0,
+                0, 0, true, 2.0, 2.0, 1
+        );
+        StandardHillEngine engine = new StandardHillEngine(teams, threshCfg);
+        TestArena arena = new TestArena("thresh10", threshCfg);
+
+        arena.setController("Vikings", "Viking Clan", UUID.randomUUID());
+
+        // Knock to 90% (2 ticks: 100→95→90) — threshold NOT crossed (90 ≥ 8), control retained
+        for (int i = 0; i < 2; i++) engine.evaluateCapture(arena, List.of(bob), false);
+        assertEquals(90.0, arena.getProgress(), 0.001);
+        assertEquals("Vikings", arena.getControllerTeamId(), "still controlled at 90%");
+        assertEquals("Spartans", arena.getCappingTeamId(), "invader tracked");
+        arena.applyEarlyThresholdCheck(); // section 8: 90 < 8? NO — no change
+        assertEquals("Vikings", arena.getControllerTeamId(), "must not strip at 90%");
+
+        // Knock to 10% (16 more ticks: 90 → 10)
+        for (int i = 0; i < 16; i++) engine.evaluateCapture(arena, List.of(bob), false);
+        assertEquals(10.0, arena.getProgress(), 0.001);
+        arena.applyEarlyThresholdCheck(); // 10 < 8? NO — still controlled (at threshold, not below)
+        assertEquals("Vikings", arena.getControllerTeamId(), "must not strip at exactly 10%");
+
+        // One more tick → 5.0% — below effective=8.0, early threshold strips control before hitting 0%
+        engine.evaluateCapture(arena, List.of(bob), false);
+        assertEquals(5.0, arena.getProgress(), 0.001);
+        arena.applyEarlyThresholdCheck(); // 5 < 8? YES — strip!
+        assertNull(arena.getControllerTeamId(), "control stripped below effective threshold 8%");
+        assertEquals("Spartans", arena.getCappingTeamId(), "pad handed to invader");
+        assertEquals(5.0, arena.getProgress(), 0.001, "progress preserved at threshold breach");
+
+        // Next tick: Bob captures upward from 5% instead of having to restart from 0%
+        engine.evaluateCapture(arena, List.of(bob), false);
+        assertEquals(10.0, arena.getProgress(), 0.001);
+        assertEquals("Spartans", arena.getCappingTeamId());
     }
 
     // ══════════════════════════════════════════════════════════════════════════
