@@ -1,7 +1,6 @@
 package me.goosbanny.outposts.core.manager;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import me.goosbanny.outposts.api.arena.OutpostArena;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +13,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Zero-allocation spatial grid indexer for Outpost arenas and faction multiplier territories.
+ * Zero-allocation spatial grid indexer for Outpost arenas.
  * Leverages FastUtil primitive bitwise maps and primitive AABB collision math.
  * Fully multi-world isolated and thread-safe.
  */
@@ -23,9 +22,6 @@ public class SpatialGridManager {
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     // Maps world name -> packed chunk key -> set of arenas overlapping that chunk
     private final Map<String, Long2ObjectOpenHashMap<Set<OutpostArena>>> worldToChunkArenas = new HashMap<>();
-
-    // Primitive set of chunk keys owned by controlling outpost teams per world (for O(1) spawner/mob drop checks)
-    private final Map<String, LongOpenHashSet> worldToTerritoryBoostChunks = new HashMap<>();
 
     /**
      * Bitwise packing of chunk X and Z into a 64-bit primitive long.
@@ -200,77 +196,12 @@ public class SpatialGridManager {
     }
 
     /**
-     * Checks if a chunk has active territory multipliers registered in a specific world.
-     */
-    public boolean hasTerritoryBoost(@NotNull String worldName, int chunkX, int chunkZ) {
-        long key = getChunkKey(chunkX, chunkZ);
-        String worldKey = worldName.toLowerCase();
-        lock.readLock().lock();
-        try {
-            LongOpenHashSet wSet = worldToTerritoryBoostChunks.get(worldKey);
-            return wSet != null && wSet.contains(key);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    /**
-     * Checks if a chunk has active territory multipliers registered across any world (legacy fallback).
-     */
-    public boolean hasTerritoryBoost(int chunkX, int chunkZ) {
-        long key = getChunkKey(chunkX, chunkZ);
-        lock.readLock().lock();
-        try {
-            for (LongOpenHashSet wSet : worldToTerritoryBoostChunks.values()) {
-                if (wSet.contains(key)) {
-                    return true;
-                }
-            }
-            return false;
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    /**
-     * Replaces the set of boosted territory chunks for active outpost holders in default "world".
-     *
-     * @param newChunkKeys collection of packed chunk keys
-     */
-    public void updateTerritoryBoostChunks(@NotNull Set<Long> newChunkKeys) {
-        updateTerritoryBoostChunks("world", newChunkKeys);
-    }
-
-    /**
-     * Replaces the set of boosted territory chunks for a specific world.
-     */
-    public void updateTerritoryBoostChunks(@NotNull String worldName, @NotNull Set<Long> newChunkKeys) {
-        long[] primitives = new long[newChunkKeys.size()];
-        int i = 0;
-        for (Long k : newChunkKeys) {
-            primitives[i++] = k.longValue();
-        }
-
-        lock.writeLock().lock();
-        try {
-            LongOpenHashSet set = worldToTerritoryBoostChunks.computeIfAbsent(worldName.toLowerCase(), k -> new LongOpenHashSet());
-            set.clear();
-            for (long p : primitives) {
-                set.add(p);
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    /**
      * Clears all spatial indexes.
      */
     public void clear() {
         lock.writeLock().lock();
         try {
             worldToChunkArenas.clear();
-            worldToTerritoryBoostChunks.clear();
         } finally {
             lock.writeLock().unlock();
         }

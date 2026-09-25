@@ -59,8 +59,12 @@ public class ConfigManager {
                 ? config.getInt("system.display_update_interval_ticks", 5)
                 : config.getInt("system.telemetry_tick_frequency", 5);
 
-        this.proximityChunkRadius = config.getInt("spatial.proximity_chunk_radius", 3);
-        this.boundaryRenderDistance = config.getInt("spatial.boundary_render_distance", 48);
+        this.bossbarRangeBlocks = config.contains("display.bossbar.range_blocks")
+                ? config.getInt("display.bossbar.range_blocks", 0)
+                : 0;
+        this.boundaryRenderDistance = config.contains("display.boundary_render_distance")
+                ? config.getInt("display.boundary_render_distance", 48)
+                : config.getInt("spatial.boundary_render_distance", 48);
 
         this.maxOutpostsEnabled = config.contains("gameplay.max_outposts_per_team.enabled")
                 ? config.getBoolean("gameplay.max_outposts_per_team.enabled", true)
@@ -92,8 +96,14 @@ public class ConfigManager {
         this.preferredTeamProvider = config.getString("hooks.team_provider", "AUTO");
         this.townyUseNations = config.getBoolean("hooks.towny_use_nations", false);
         this.shopGuiMultiplierCap = config.getDouble("hooks.shopguiplus_multiplier_cap", 2.5);
-        String defaultOccStr = config.getString("defaults.occupancy_mode", "TEAM");
+        String defaultOccStr = config.getString("defaults.occupancy_mode", "SOLO");
         this.defaultOccupancyMode = OccupancyMode.fromString(defaultOccStr);
+        String defaultCapStr = config.getString("defaults.capture_mode", "STANDARD_HILL").toUpperCase();
+        try {
+            this.defaultCaptureMode = me.goosbanny.outposts.api.mechanics.CaptureModeType.valueOf(defaultCapStr);
+        } catch (IllegalArgumentException e) {
+            this.defaultCaptureMode = me.goosbanny.outposts.api.mechanics.CaptureModeType.STANDARD_HILL;
+        }
 
         // Ensure outposts and schedules folders exist
         File outpostsFolder = new File(plugin.getDataFolder(), "outposts");
@@ -102,12 +112,14 @@ public class ConfigManager {
         }
     }
 
+    private int bossbarRangeBlocks = 0;
+    private me.goosbanny.outposts.api.mechanics.CaptureModeType defaultCaptureMode = me.goosbanny.outposts.api.mechanics.CaptureModeType.STANDARD_HILL;
     private boolean townyUseNations = false;
 
     public int getEngineTickFrequency() { return engineTickFrequency; }
     public int getTelemetryTickFrequency() { return telemetryTickFrequency; }
     public int getDisplayUpdateIntervalTicks() { return telemetryTickFrequency; }
-    public int getProximityChunkRadius() { return proximityChunkRadius; }
+    public int getBossbarRangeBlocks() { return bossbarRangeBlocks; }
     public int getBoundaryRenderDistance() { return boundaryRenderDistance; }
     public boolean isMaxOutpostsEnabled() { return maxOutpostsEnabled; }
     public int getMaxOutpostsLimit() { return maxOutpostsLimit; }
@@ -122,5 +134,6 @@ public class ConfigManager {
     public double getShopGuiMultiplierCap() { return shopGuiMultiplierCap; }
     public double getShopGuiPlusMultiplierCap() { return shopGuiMultiplierCap; }
     public OccupancyMode getDefaultOccupancyMode() { return defaultOccupancyMode; }
+    public me.goosbanny.outposts.api.mechanics.CaptureModeType getDefaultCaptureMode() { return defaultCaptureMode; }
     public YamlConfiguration getSchedulesConfig() { return schedulesConfig; }
 }

@@ -113,6 +113,14 @@ public class DefaultOutpostArena implements OutpostArena {
     private boolean boundingParticlesEnabled = false;
     private String clearingTeamName = null;
 
+    private Integer customBossbarRange = null;
+    private Integer customBoundaryRenderDistance = null;
+    private Boolean customPreventChorusFruit = null;
+    private Boolean customPreventElytraFlight = null;
+    private Boolean customPreventBlockBreak = null;
+    private Boolean customPreventBlockPlace = null;
+    private String customTeamProvider = null;
+
     public DefaultOutpostArena(
             @NotNull String id,
             @NotNull Component displayName,
@@ -262,6 +270,74 @@ public class DefaultOutpostArena implements OutpostArena {
         this.boundingParticlesEnabled = enabled;
     }
 
+    public int getBossbarRangeBlocks() {
+        if (customBossbarRange != null) return customBossbarRange;
+        me.goosbanny.outposts.Outposts plugin = me.goosbanny.outposts.Outposts.getInstance();
+        return plugin != null ? plugin.getConfigManager().getBossbarRangeBlocks() : 0;
+    }
+
+    public void setCustomBossbarRange(@Nullable Integer range) {
+        this.customBossbarRange = range;
+    }
+
+    public int getBoundaryRenderDistance() {
+        if (customBoundaryRenderDistance != null) return customBoundaryRenderDistance;
+        me.goosbanny.outposts.Outposts plugin = me.goosbanny.outposts.Outposts.getInstance();
+        return plugin != null ? plugin.getConfigManager().getBoundaryRenderDistance() : 48;
+    }
+
+    public void setCustomBoundaryRenderDistance(@Nullable Integer dist) {
+        this.customBoundaryRenderDistance = dist;
+    }
+
+    public boolean isPreventChorusFruit() {
+        if (customPreventChorusFruit != null) return customPreventChorusFruit;
+        me.goosbanny.outposts.Outposts plugin = me.goosbanny.outposts.Outposts.getInstance();
+        return plugin != null && plugin.getConfigManager().isPreventChorusFruit();
+    }
+
+    public void setCustomPreventChorusFruit(@Nullable Boolean prevent) {
+        this.customPreventChorusFruit = prevent;
+    }
+
+    public boolean isPreventElytraFlight() {
+        if (customPreventElytraFlight != null) return customPreventElytraFlight;
+        me.goosbanny.outposts.Outposts plugin = me.goosbanny.outposts.Outposts.getInstance();
+        return plugin != null && plugin.getConfigManager().isPreventElytraFlight();
+    }
+
+    public void setCustomPreventElytraFlight(@Nullable Boolean prevent) {
+        this.customPreventElytraFlight = prevent;
+    }
+
+    public boolean isPreventBlockBreak() {
+        if (customPreventBlockBreak != null) return customPreventBlockBreak;
+        me.goosbanny.outposts.Outposts plugin = me.goosbanny.outposts.Outposts.getInstance();
+        return plugin != null && plugin.getConfigManager().isPreventBlockBreak();
+    }
+
+    public void setCustomPreventBlockBreak(@Nullable Boolean prevent) {
+        this.customPreventBlockBreak = prevent;
+    }
+
+    public boolean isPreventBlockPlace() {
+        if (customPreventBlockPlace != null) return customPreventBlockPlace;
+        me.goosbanny.outposts.Outposts plugin = me.goosbanny.outposts.Outposts.getInstance();
+        return plugin != null && plugin.getConfigManager().isPreventBlockPlace();
+    }
+
+    public void setCustomPreventBlockPlace(@Nullable Boolean prevent) {
+        this.customPreventBlockPlace = prevent;
+    }
+
+    public @Nullable String getCustomTeamProvider() {
+        return customTeamProvider;
+    }
+
+    public void setCustomTeamProvider(@Nullable String provider) {
+        this.customTeamProvider = provider;
+    }
+
     public Set<UUID> getPlayersInZone() {
         return Collections.unmodifiableSet(playersInZone);
     }
@@ -340,7 +416,6 @@ public class DefaultOutpostArena implements OutpostArena {
         this.cappingTeamName = existing.getCappingTeamName();
         this.lockoutRemainingSeconds = existing.getLockoutRemainingSeconds();
         this.isContested = existing.isContested();
-        this.boundingParticlesEnabled = existing.isBoundingParticlesEnabled();
 
         if (existing instanceof DefaultOutpostArena def) {
             this.state = def.state;

@@ -180,7 +180,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args.length < 3) {
-            player.sendMessage(mm.deserialize("<red>Usage: /outpost create <id> <TEAM|SOLO> [mode]</red>"));
+            player.sendMessage(mm.deserialize("<red>Usage: /outpost create <id> <SOLO|TEAM> [mode]</red>"));
             return;
         }
 
@@ -192,12 +192,12 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
 
         String occStr = args[2].toUpperCase();
         if (!occStr.equals("TEAM") && !occStr.equals("SOLO")) {
-            player.sendMessage(mm.deserialize("<red>Invalid occupancy mode '" + args[2] + "'. Must be TEAM or SOLO.</red>"));
+            player.sendMessage(mm.deserialize("<red>Invalid occupancy mode '" + args[2] + "'. Must be SOLO or TEAM.</red>"));
             return;
         }
         OccupancyMode occupancyMode = OccupancyMode.valueOf(occStr);
 
-        CaptureModeType captureMode = CaptureModeType.STANDARD_HILL;
+        CaptureModeType captureMode = plugin.getConfigManager().getDefaultCaptureMode();
         if (args.length >= 4) {
             try {
                 captureMode = CaptureModeType.valueOf(args[3].toUpperCase());
@@ -622,7 +622,7 @@ public class OutpostCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3) {
             if ("create".equalsIgnoreCase(args[0]) && sender.hasPermission("outposts.admin")) {
-                return filter(List.of("TEAM", "SOLO"), args[2]);
+                return filter(List.of("SOLO", "TEAM"), args[2]);
             }
             if ("region".equalsIgnoreCase(args[0]) && sender.hasPermission("outposts.admin")) {
                 List<String> arenaIds = new ArrayList<>();

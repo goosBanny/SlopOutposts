@@ -91,6 +91,10 @@ public class ArenaManager {
         return arenaMap.containsKey(id.toLowerCase());
     }
 
+    public long getTickPeriod() {
+        return tickPeriod;
+    }
+
     /**
      * Starts the arena game loop across all registered arenas.
      *

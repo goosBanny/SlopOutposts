@@ -33,9 +33,8 @@ Built from the ground up on SOLID principles, Outposts combines high-intensity t
   - **Pitch-Scaled Audio:** Auditory cues scale in pitch from 0.5 to 2.0 as capture approaches 100%, culminating in a victory fanfare.
   - **Perimeter Displays:** Distance-culled RGB dust particles outlining the 12 edges of the arena bounding box.
 - 💎 **Passive & Active Multipliers:**
-  - **Mob Spawner Boost:** Accelerates tick delay on spawners in held territories.
   - **Mob Drop & EXP Multipliers:** Multiplies item drops and experience orbs from hostile mob kills.
-  - **PvP Combat Advantage:** Percentage damage boost dealt by controlling faction members.
+  - **PvP Combat Advantage:** Percentage damage boost dealt by controlling members.
   - **ShopGUI+ Multiplier Hook:** Configurable bonus sell rate for active outpost controllers.
   - **Comfort Perks:** Disables hunger depletion (`NO_HUNGER_LOSS`) for controlling members.
 - 🤝 **Decoupled Team & Economy Hooks:**

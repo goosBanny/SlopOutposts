@@ -8,10 +8,9 @@ Holding an outpost provides passive buffs, combat advantages, and repeated payou
 
 | Multiplier Key | Default | Description |
 | :--- | :--- | :--- |
-| `spawner_rate` | `1.5` | Reduces tick delays on mob spawners within faction claims (35% faster spawns). |
-| `mob_drop_rate` | `1.75` | Multiplies item drops from hostile mobs killed by faction members. |
+| `mob_drop_rate` | `1.75` | Multiplies item drops from hostile mobs killed by controlling members or solo players. |
 | `exp_drop_rate` | `2.0` | Multiplies experience points dropped from mob kills. |
-| `damage_rate` | `1.10` | Applies a 10% bonus to player PvP damage dealt by faction members. |
+| `damage_rate` | `1.10` | Applies a 10% bonus to player PvP damage dealt by controlling members. |
 | `shopgui_sell_rate` | `1.35` | Yields a 35% bonus sell price when selling goods via ShopGUIPlus. |
 
 ### How Stacking Works

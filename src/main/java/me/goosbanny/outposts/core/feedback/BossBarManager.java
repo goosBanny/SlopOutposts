@@ -57,7 +57,7 @@ public class BossBarManager {
 
     /**
      * Finds UUIDs of all players within boss bar render distance of the outpost center.
-     * Designed to be called safely on the world region/main thread.
+     * Supports server-wide (0), world-wide (-1), or spherical block radius (>0).
      */
     @NotNull
     public Set<UUID> findNearbyPlayerUuids(@NotNull OutpostArena arena) {
@@ -66,34 +66,37 @@ public class BossBarManager {
             return Collections.emptySet();
         }
 
-        double rSquared = (double) renderDistanceBlocks * renderDistanceBlocks;
+        int range = arena instanceof DefaultOutpostArena def ? def.getBossbarRangeBlocks() : this.renderDistanceBlocks;
         Set<UUID> nearby = new HashSet<>();
-        List<Player> candidates = new ArrayList<>();
-        try {
-            for (Entity e : center.getWorld().getNearbyEntities(center, renderDistanceBlocks, renderDistanceBlocks, renderDistanceBlocks, entity -> entity instanceof Player)) {
-                if (e instanceof Player p && p.isOnline() && !p.isDead()) {
-                    if (FoliaCompatScheduler.isFolia() && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
-                        continue;
-                    }
-                    candidates.add(p);
-                }
-            }
-        } catch (Exception e) {
-            for (Player p : center.getWorld().getPlayers()) {
+
+        // 0 = server-wide (all online players)
+        if (range == 0) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.isOnline() && !p.isDead()) {
-                    if (FoliaCompatScheduler.isFolia()
-                            && !FoliaCompatScheduler.isOwnedByCurrentRegion(p)) {
-                        continue;
-                    }
-                    candidates.add(p);
+                    nearby.add(p.getUniqueId());
                 }
             }
+            return nearby;
         }
 
-        for (Player p : candidates) {
-            Location loc = p.getLocation();
-            if (loc.getWorld() != null && loc.getWorld().equals(center.getWorld()) && loc.distanceSquared(center) <= rSquared) {
-                nearby.add(p.getUniqueId());
+        // -1 (or negative) = world-wide (all online players in the outpost world)
+        if (range < 0) {
+            for (Player p : center.getWorld().getPlayers()) {
+                if (p.isOnline() && !p.isDead()) {
+                    nearby.add(p.getUniqueId());
+                }
+            }
+            return nearby;
+        }
+
+        // > 0 = spherical block distance around center in the same world
+        double rSquared = (double) range * range;
+        for (Player p : center.getWorld().getPlayers()) {
+            if (p.isOnline() && !p.isDead()) {
+                Location loc = p.getLocation();
+                if (loc.getWorld() != null && loc.getWorld().equals(center.getWorld()) && loc.distanceSquared(center) <= rSquared) {
+                    nearby.add(p.getUniqueId());
+                }
             }
         }
         return nearby;

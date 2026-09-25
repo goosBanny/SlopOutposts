@@ -2,6 +2,7 @@ package me.goosbanny.outposts.core.anticheese;
 
 import me.goosbanny.outposts.api.arena.OutpostArena;
 import me.goosbanny.outposts.config.LangManager;
+import me.goosbanny.outposts.core.arena.DefaultOutpostArena;
 import me.goosbanny.outposts.core.manager.SpatialGridManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -88,12 +89,12 @@ public class AntiCheeseListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (!preventBlockBreak || event.getPlayer().hasPermission("outposts.admin.bypass")) {
-            return;
-        }
+        if (event.getPlayer().hasPermission("outposts.admin.bypass")) return;
         Location loc = event.getBlock().getLocation();
         OutpostArena arena = spatialGridManager.getArenaAt(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-        if (arena != null) {
+        if (arena == null) return;
+        boolean prevent = arena instanceof DefaultOutpostArena def ? def.isPreventBlockBreak() : preventBlockBreak;
+        if (prevent) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(langManager.get("commands.blocked_block_break"));
         }
@@ -101,12 +102,12 @@ public class AntiCheeseListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (!preventBlockPlace || event.getPlayer().hasPermission("outposts.admin.bypass")) {
-            return;
-        }
+        if (event.getPlayer().hasPermission("outposts.admin.bypass")) return;
         Location loc = event.getBlock().getLocation();
         OutpostArena arena = spatialGridManager.getArenaAt(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-        if (arena != null) {
+        if (arena == null) return;
+        boolean prevent = arena instanceof DefaultOutpostArena def ? def.isPreventBlockPlace() : preventBlockPlace;
+        if (prevent) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(langManager.get("commands.blocked_block_place"));
         }
@@ -114,13 +115,13 @@ public class AntiCheeseListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
-        if (!preventChorusFruit || event.getCause() != PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) {
-            return;
-        }
+        if (event.getCause() != PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) return;
         Location to = event.getTo();
         if (to == null) return;
         OutpostArena arena = spatialGridManager.getArenaAt(to.getWorld().getName(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
-        if (arena != null) {
+        if (arena == null) return;
+        boolean prevent = arena instanceof DefaultOutpostArena def ? def.isPreventChorusFruit() : preventChorusFruit;
+        if (prevent) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(langManager.get("commands.blocked_chorus"));
         }

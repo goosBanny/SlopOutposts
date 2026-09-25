@@ -97,11 +97,6 @@ public class SpatialGridManagerTest {
         assertEquals(1, netherArenas.size());
         assertEquals("nether_arena", netherArenas.iterator().next().getId());
 
-        // Territory boost world isolation
-        long chunkKey = SpatialGridManager.getChunkKey(0, 0);
-        gridManager.updateTerritoryBoostChunks("world", Set.of(chunkKey));
-        assertTrue(gridManager.hasTerritoryBoost("world", 0, 0));
-        assertFalse(gridManager.hasTerritoryBoost("world_nether", 0, 0));
     }
 
     private static class DummyArena implements OutpostArena {

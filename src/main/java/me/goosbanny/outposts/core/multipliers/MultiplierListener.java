@@ -6,7 +6,6 @@ import me.goosbanny.outposts.api.team.TeamRosterProvider;
 import me.goosbanny.outposts.core.arena.ArenaMultipliers;
 import me.goosbanny.outposts.core.manager.ArenaManager;
 import me.goosbanny.outposts.core.manager.SpatialGridManager;
-import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -16,7 +15,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
-import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -105,22 +103,6 @@ public class MultiplierListener implements Listener {
         if (expDropRate > 1.0) {
             int newExp = (int) Math.round(event.getDroppedExp() * expDropRate);
             event.setDroppedExp(newExp);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onSpawnerSpawn(SpawnerSpawnEvent event) {
-        CreatureSpawner spawner = event.getSpawner();
-        if (spawner != null) {
-            int chunkX = spawner.getLocation().getBlockX() >> 4;
-            int chunkZ = spawner.getLocation().getBlockZ() >> 4;
-
-            // Check if chunk is owned by a controlling outpost team
-            if (spatialGridManager.hasTerritoryBoost(spawner.getWorld().getName(), chunkX, chunkZ)) {
-                // Accelerate spawner tick delay by 35%
-                spawner.setDelay(Math.max(20, (int) (spawner.getDelay() * 0.65)));
-                spawner.update();
-            }
         }
     }
 

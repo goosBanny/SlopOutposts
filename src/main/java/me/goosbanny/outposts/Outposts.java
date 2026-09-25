@@ -19,6 +19,8 @@ import me.goosbanny.outposts.core.manager.ArenaManager;
 import me.goosbanny.outposts.core.manager.SpatialGridManager;
 import me.goosbanny.outposts.core.anticheese.OutpostWarpProtectionListener;
 import me.goosbanny.outposts.core.multipliers.MultiplierListener;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import me.goosbanny.outposts.core.schedule.ScheduleManager;
@@ -67,6 +69,7 @@ public final class Outposts extends JavaPlugin {
     private OutpostWarpProtectionListener warpProtectionListener;
     private OutpostsAsyncWorker asyncWorker;
     private FoliaCompatScheduler.TaskHandle displayTask;
+    private long currentDisplayPeriod = 5L;
 
     public static Outposts getInstance() {
         return instance;
@@ -235,8 +238,8 @@ public final class Outposts extends JavaPlugin {
     }
 
     private void startDisplayLoop() {
-        long period = Math.max(1L, configManager.getTelemetryTickFrequency());
-        displayTask = scheduler.runGlobalTimer(period, period, handle -> {
+        this.currentDisplayPeriod = Math.max(1L, configManager.getTelemetryTickFrequency());
+        displayTask = scheduler.runGlobalTimer(currentDisplayPeriod, currentDisplayPeriod, handle -> {
             // Offload schedule ticks and actionbars completely to single async worker
             asyncWorker.execute(() -> {
                 if (scheduleManager != null) {
@@ -335,15 +338,34 @@ public final class Outposts extends JavaPlugin {
         langManager.load();
         teamHookManager.detectAndInitialize(configManager.getPreferredTeamProvider());
 
+        // Reschedule game loop if engine_tick_frequency changed
+        long engineFreq = configManager.getEngineTickFrequency();
+        if (arenaManager.getTickPeriod() != engineFreq) {
+            arenaManager.stopTicking();
+            arenaManager.startTicking(engineFreq);
+        }
+
+        // Reschedule display task if display_update_interval_ticks changed
+        long displayFreq = Math.max(1L, configManager.getTelemetryTickFrequency());
+        if (currentDisplayPeriod != displayFreq) {
+            if (displayTask != null) {
+                displayTask.cancel();
+            }
+            startDisplayLoop();
+        }
+
         // Re-read configuration values for arenas without wiping active progress or controllers
         File folder = new File(getDataFolder(), "outposts");
         File[] files = folder.listFiles((dir, name) -> name.endsWith(".yml"));
+        Set<String> loadedIds = new HashSet<>();
         if (files != null) {
             for (File file : files) {
                 try {
                     OutpostArena loaded = arenaSerializer.loadFromFile(file);
                     if (loaded != null) {
-                        OutpostArena existing = arenaManager.getArena(loaded.getId());
+                        String id = loaded.getId().toLowerCase();
+                        loadedIds.add(id);
+                        OutpostArena existing = arenaManager.getArena(id);
                         if (existing != null) {
                             if (loaded instanceof DefaultOutpostArena def) {
                                 def.copyRuntimeStateFrom(existing);
@@ -369,6 +391,22 @@ public final class Outposts extends JavaPlugin {
                 }
             }
         }
+
+        // Unregister any arenas that were deleted from disk
+        for (OutpostArena arena : new ArrayList<>(arenaManager.getArenas())) {
+            String id = arena.getId().toLowerCase();
+            if (!loadedIds.contains(id)) {
+                arenaManager.unregisterArena(id);
+                if (bossBarManager != null) {
+                    bossBarManager.removeArenaBar(id);
+                }
+                if (actionBarManager != null) {
+                    actionBarManager.clearArena(id);
+                }
+                getLogger().info("Unregistered deleted outpost arena '" + id + "'.");
+            }
+        }
+
         if (scheduleManager != null) {
             scheduleManager.loadSchedules(configManager.getSchedulesConfig());
         }

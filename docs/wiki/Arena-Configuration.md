@@ -15,13 +15,19 @@ meta:
 
 geometry:
   world: "world"
+  bounding_particles: true
+  boundary_render_distance: 48
   min: { x: 362, y: 23, z: -1144 }
   max: { x: 368, y: 27, z: -1138 }
   warp: { x: 365.5, y: 28.0, z: -1141.5, yaw: 0.0, pitch: 0.0 }
 
+display:
+  bossbar_range_blocks: 0 # 0 = server-wide, -1 = world-wide, >0 = block radius
+
 mechanics:
   enabled: true
-  occupancy_mode: "TEAM" # TEAM or SOLO (free-for-all mode)
+  auto_start: true
+  occupancy_mode: "SOLO" # SOLO or TEAM
   mode: "STANDARD_HILL" # STANDARD_HILL, TUG_OF_WAR, TICKET_ACCUMULATION, PASSIVE_DECAY
   speed:
     percent_per_second: 2.5
@@ -39,8 +45,13 @@ mechanics:
     hysteresis_buffer_percent: 2.0
     state_change_cooldown_seconds: 1.0
 
+combat_restrictions:
+  prevent_chorus_fruit: true
+  prevent_elytra_flight: true
+  prevent_block_break: false
+  prevent_block_place: false
+
 multipliers:
-  spawner_rate: 1.5
   mob_drop_rate: 1.75
   exp_drop_rate: 2.0
   damage_rate: 1.10
@@ -69,10 +80,22 @@ actions:
 
 ### 2. `geometry`
 - **`world`**: Bukkit world identifier.
+- **`bounding_particles`**: Enables live RGB perimeter dust outlines along cuboid edges while active.
+- **`boundary_render_distance`**: Distance in blocks for nearby players to receive boundary particles (default: `48`).
 - **`min` / `max`**: Integer cuboid corners defining the capture boundary.
 - **`warp`**: Teleport destination coordinates used by `/outpost tp <id>`.
 
-### 3. `mechanics`
+### 3. `display`
+- **`bossbar_range_blocks`**: BossBar viewing distance (`0` = entire server, `-1` = outpost world only, `>0` = spherical block radius).
+
+### 4. `combat_restrictions`
+Optional per-outpost overrides for capture zone combat rules (falls back to `config.yml` if omitted):
+- `prevent_chorus_fruit`: Prevents eating Chorus Fruit to glitch-teleport through walls.
+- `prevent_elytra_flight`: Disqualifies players flying with Elytra wings inside the zone.
+- `prevent_block_break`: Prevents breaking blocks inside the capture zone.
+- `prevent_block_place`: Prevents placing blocks (e.g. lava, cobwebs, obsidian) on the pad.
+
+### 5. `mechanics`
 - **`occupancy_mode`**: `TEAM` (controlled by whole clans/factions) or `SOLO` (individual player free-for-all).
 - **`percent_per_second`**: Base capture percentage change per second (e.g. 2.5% = 40s base capture time).
 - **`uncapture_percent_per_second`**: Base percentage deducted per second when an invading team knocks down enemy progress (100% -> 0%).

@@ -11,7 +11,6 @@ import java.util.Map;
  */
 public class ArenaMultipliers {
 
-    public static final String SPAWNER_RATE = "spawner_rate";
     public static final String MOB_DROP_RATE = "mob_drop_rate";
     public static final String EXP_DROP_RATE = "exp_drop_rate";
     public static final String DAMAGE_RATE = "damage_rate";
@@ -25,7 +24,6 @@ public class ArenaMultipliers {
 
     public static ArenaMultipliers createDefault() {
         Map<String, Double> map = new HashMap<>();
-        map.put(SPAWNER_RATE, 1.5);
         map.put(MOB_DROP_RATE, 1.75);
         map.put(EXP_DROP_RATE, 2.0);
         map.put(DAMAGE_RATE, 1.10);

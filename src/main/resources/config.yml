@@ -1,100 +1,90 @@
 # ==============================================================================
-#                      Outposts (v1.0.0) Territory Engine
-#          Competitive King-of-the-Hill & Territorial Control System
-# ==============================================================================
-# Global server configuration: tick rates, gameplay rules, and plugin hooks.
-# Individual outposts are configured in the /outposts/ folder.
+# Outposts - Server Configuration
+# Global settings for timers, visual displays, combat rules, and integrations.
+# Individual outposts are configured separately in the /outposts/ folder.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # 1. System & Ticking
 # ------------------------------------------------------------------------------
 system:
-  # Language file (matches lang.yml). Messages and titles are edited there.
-  locale: "en_US"
-
-  # Core capture loop tick rate (in server ticks, 20 ticks = 1 second).
-  # 20 ticks = checks capture pads once per second.
+  # Capture loop check interval in server ticks (20 ticks = 1 second)
   engine_tick_frequency: 20
 
-  # Display update rate (in server ticks) for BossBars and ActionBars.
-  # 5 ticks = updates 4 times per second for smooth progress bars with low overhead.
+  # Display refresh rate for BossBars and ActionBars (5 ticks = 4 updates per second)
   display_update_interval_ticks: 5
 
 # ------------------------------------------------------------------------------
-# 2. Spatial Grid & Rendering
+# 2. Visual & Display Settings
 # ------------------------------------------------------------------------------
-spatial:
-  # How many chunks around each outpost receive territory mob spawner buffs.
-  # A radius of 3 indexes a 7x7 chunk square (49 chunks) centered on the outpost.
-  proximity_chunk_radius: 3
+display:
+  bossbar:
+    # Distance in blocks to show the BossBar to players.
+    #  0 = Entire server (all online players see it regardless of world or distance)
+    # -1 = World only (all online players in the outpost world see it)
+    # >0 = Spherical radius in blocks from the outpost center (e.g. 64)
+    range_blocks: 0
 
-  # Maximum distance (in blocks) to show perimeter border particles to players.
-  # Beyond this distance, particles are hidden to keep client FPS high.
+  # Default distance in blocks to show border outline particles to nearby players.
+  # Can be customized individually inside each outpost file.
   boundary_render_distance: 48
 
 # ------------------------------------------------------------------------------
-# 3. Gameplay & Pad Rules
+# 3. Gameplay Limits & Combat Rules
 # ------------------------------------------------------------------------------
 gameplay:
-  # Limits how many outposts one team or player can hold at the same time.
+  # Limits how many outposts one team or player can hold simultaneously
   max_outposts_per_team:
+    # Whether to enforce the outpost holding limit
     enabled: true
-    # Maximum territories one team/player can own simultaneously.
+    # Maximum number of outposts a single team or player can control at once
     limit: 2
-    # Cooldown (in seconds) required before the same team can capture another outpost.
+    # Cooldown in seconds before the same team can capture another outpost
     cooldown_seconds: 15
 
-  # Combat & movement restrictions inside active capture zones.
+  # Default pad restrictions across all outposts (can be overridden per outpost)
   combat_restrictions:
-    # Stops players from eating Chorus Fruit to teleport or escape PvP on the pad.
+    # Stops players from eating Chorus Fruit to teleport or escape PvP on the pad
     prevent_chorus_fruit: true
 
-    # Stops players from gliding with Elytra inside the capture zone.
+    # Stops players from flying with Elytra wings inside the capture zone
     prevent_elytra_flight: true
 
-    # Stops players from breaking blocks inside the capture zone.
-    # Defaults to false because region plugins (like WorldGuard) usually handle build protection.
+    # Stops players from breaking blocks inside the capture zone
+    # Defaults to false so region management plugins (like WorldGuard) can handle it
     prevent_block_break: false
 
-    # Stops players from placing blocks (e.g. cobwebs, lava, obsidian) on the pad.
-    # Defaults to false because region plugins (like WorldGuard) usually handle build protection.
+    # Stops players from placing blocks (e.g. cobwebs, lava, obsidian) on the pad
+    # Defaults to false so region management plugins (like WorldGuard) can handle it
     prevent_block_place: false
 
 # ------------------------------------------------------------------------------
 # 4. Team & Economy Hooks
 # ------------------------------------------------------------------------------
 hooks:
-  # Preferred Team/Faction plugin.
+  # Preferred team plugin for clan/faction management.
   # Options:
-  #   AUTO        - Automatically detects the best installed plugin in this order:
-  #                 ZelTeams -> BetterTeams -> FactionsUUID -> Towny -> Scoreboard
-  #   ZELTEAMS    - ZelTeams (supports team bank deposits)
-  #   BETTERTEAMS - BetterTeams (by booksaw)
-  #   FACTIONS    - FactionsUUID / SaberFactions / SavageFactions
+  #   AUTO        - Automatically detects installed plugins (ZelTeams -> BetterTeams -> Factions -> Towny -> Scoreboard)
+  #   SCOREBOARD  - Built-in vanilla Minecraft scoreboard teams (no external plugins required)
+  #   ZELTEAMS    - ZelTeams (supports faction bank deposits)
+  #   BETTERTEAMS - BetterTeams by booksaw
+  #   FACTIONS    - FactionsUUID, SaberFactions, SavageFactions
   #   TOWNY       - Towny (Towns)
-  #   SCOREBOARD  - Vanilla Minecraft scoreboard teams (no external plugins needed)
   team_provider: "AUTO"
 
-  # Towny only: If true, treats the whole Nation as the owner instead of individual Towns.
+  # Towny only: Set to true to treat the whole Nation as the owner instead of individual Towns
   towny_use_nations: false
 
-  # Maximum multiplier that can be applied to ShopGUI+ item sales (e.g. 2.5 = 250% max).
+  # Maximum multiplier allowed when selling items to ShopGUIPlus (e.g. 2.5 = 250% sell price)
   shopguiplus_multiplier_cap: 2.5
 
 # ------------------------------------------------------------------------------
-# 5. Default Arena Creation Settings
+# 5. Default Outpost Settings
 # ------------------------------------------------------------------------------
 defaults:
-  # Default mode used when creating an outpost via '/outpost create <id> <TEAM|SOLO> [mode]'.
-  # Options:
-  #   TEAM - Captured and owned by teams/factions (allies assist, enemies contest).
-  #   SOLO - Free-for-all mode where individual players capture and own it.
-  occupancy_mode: "TEAM"
+  # Default ownership mode when creating outposts (SOLO or TEAM)
+  occupancy_mode: "SOLO"
 
-  # Default capture mechanics strategy when omitted in '/outpost create'.
-  # Options:
-  #   STANDARD_HILL        - Classic King-of-the-Hill (0% to 100%)
-  #   TUG_OF_WAR           - Symmetrical 2-team tug-of-war from 50% midpoint
-  #   TICKET_ACCUMULATION  - Point goal accumulation (0 to target tickets)
+  # Default capture mechanics strategy when omitted in '/outpost create'
+  # Options: STANDARD_HILL, TUG_OF_WAR, TICKET_ACCUMULATION, PASSIVE_DECAY
   capture_mode: "STANDARD_HILL"

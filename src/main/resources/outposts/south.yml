@@ -1,32 +1,42 @@
 # ==============================================================================
-# Outposts (v1.0.0) — Individual Arena Configuration
-# Arena Identifier: south
-# Complete showcase arena demonstrating all gameplay mechanics and options.
+# Outposts - Arena Configuration: south
+# Complete showcase arena demonstrating all configuration options.
 # ==============================================================================
 
-# Unique alphanumeric ID for this outpost (matches the filename: south.yml)
+# Unique identifier for this outpost (matches the file name: south.yml)
 id: "south"
 
 # Display metadata and GUI icons
 meta:
-  # Display name rendered with Adventure MiniMessage format
+  # Display name rendered with Adventure MiniMessage format (supports hex colors and gradients)
   name: "<#F07DB5><bold>South Outpost</bold></#F07DB5>"
-  # Material icon used in administrative GUIs and menus
+  # Material item icon shown in menus and GUIs
   icon: "NETHERITE_SWORD"
 
-# 3D Cuboid Bounding Box and Teleport Geometry
+# Bounding box geometry and teleport locations
 geometry:
+  # Bukkit world where this outpost is located
   world: "world"
-  # Set bounding_particles to true to render live RGB particle outlines connecting corners
-  bounding_particles: false
+
+  # Show live particle outlines connecting the borders of this outpost (only renders while active)
+  bounding_particles: true
+
+  # Distance in blocks for nearby players to see the boundary outline particles
+  boundary_render_distance: 48
+
+  # Minimum corner of the 3D capture cuboid
   min:
     x: 362
     y: 23
     z: -1144
+
+  # Maximum corner of the 3D capture cuboid
   max:
     x: 368
     y: 27
     z: -1138
+
+  # Teleport destination used by /outpost tp south
   warp:
     x: 365.5
     y: 28.0
@@ -34,212 +44,103 @@ geometry:
     yaw: 0.0
     pitch: 0.0
 
-# Capture Mechanics and Gameplay Parameters
+# Visual display settings
+display:
+  # Distance to display the BossBar for this outpost (0 = server-wide, -1 = world-wide, >0 = block radius)
+  bossbar_range_blocks: 0
+
+# Capture mechanics and gameplay behavior
 mechanics:
+  # Enables this outpost for ticking and interactions
   enabled: true
-  # When true, the outpost starts active automatically without requiring a schedule or /outpost forcestart.
-  auto_start: false
 
-  # Occupancy and Contention Mode:
-  # - TEAM: Outpost is captured and controlled by whole teams/factions.
-  #         Teammates accelerate capture together; allies avoid stalling.
-  # - SOLO: Free-for-all mode. Outpost is captured and owned by an individual player.
-  occupancy_mode: "TEAM"
+  # Starts active automatically on startup without needing a schedule or /outpost forcestart
+  auto_start: true
 
-  # Pluggable Capture Engine Mode:
-  # - STANDARD_HILL:       Classic KOTH (0% -> 100%). Invaders knock defending progress to 0% first.
-  # - TUG_OF_WAR:          Symmetrical 50% midpoint anchor pulled toward extremes based on player ratio.
-  # - TICKET_ACCUMULATION: Holding team generates points/tickets over time up to score cap.
+  # SOLO (free-for-all individual players) or TEAM (factions/clans)
+  occupancy_mode: "SOLO"
+
+  # Capture strategy:
+  # - STANDARD_HILL:       Classic KOTH (0% -> 100%). Invaders must knock defender progress to 0% first.
+  # - TUG_OF_WAR:          Symmetrical 50% midpoint pulled back and forth based on player ratio.
+  # - TICKET_ACCUMULATION: Holding team scores points/tickets over time up to target capacity.
   # - PASSIVE_DECAY:       Capture progress bleeds back to neutral 0% whenever the pad is vacated.
   mode: "STANDARD_HILL"
 
-  # Capture Speed Scaling
+  # Capture speed rates
   speed:
-    # Base percentage added per second when capturing (2.5% = 40s to capture solo)
+    # Base percent captured per second when standing uncontested on the pad (2.5% = 40s to capture)
     percent_per_second: 2.5
-    # Base percentage deducted per second when invading and knocking down enemy progress
+    # Base percent removed per second when attackers knock down defending control
     uncapture_percent_per_second: 2.5
-    # Additional bonus percentage added per extra teammate standing on the capture pad
+    # Extra capture percent added per second for each additional teammate on the pad
     scaling_per_member: 0.5
-    # Maximum number of players counted toward capture speed calculation
+    # Maximum number of players counted for teammate speed bonuses
     max_cappers_counted: 4
 
-  # Capture Behavior & Fair Play Rules
+  # Tactical behavior and fair-play anti-jitter rules
   behavior:
-    # If true, capture progress completely stops moving while opposing teams are both on the pad
+    # Pauses capture progress when rival players are fighting inside the pad at the same time
     freeze_when_contested: true
 
-    # When do the defenders lose their control buffs and territory multipliers?
-    # - 100.0: Defenders lose control the instant an enemy knocks progress below 100%.
-    # - 0.0: Defenders keep control and rewards until enemies knock progress all the way to 0%.
-    # Example: If set to 100.0, any enemy stepping on the pad immediately disrupts the defending team's hold.
+    # How far defenders must be knocked down before they lose control of the outpost.
+    # Default is 100.0 (defenders must be pushed all the way down from 100% to 0% to lose control).
+    # Example: If set to 60.0, attackers only need to drop the bar to 40% before the outpost neutralizes.
     lose_control_threshold: 100.0
 
-    # How many seconds of protection the winning team gets right after capturing
+    # Lockout cooldown in seconds after a capture during which the outpost cannot be contested
     lockout_seconds: 10
 
-    # Grace delay (in seconds) before an invading team can start knocking down defender progress
+    # Grace delay in seconds before an invader can start knocking down defending progress
     knock_delay_seconds: 5
 
-    # Passive decay: What happens when the pad is empty (abandoned)?
+    # Progress bleed when a neutral pad is left unfinished
     passive_decay:
+      # Whether unfinished captures bleed progress back to 0% when abandoned
       enabled: true
+      # Percent drained per second when the pad is empty
       rate_per_second: 2.5
 
-    # Anti-flicker buffer (in percent):
-    # Prevents boss bars and scoreboards from flickering when enemies step on and off the edge of the pad.
-    # Example: If set to 2.0, defenders won't start losing control until enemies knock progress below 98.0%.
-    # This stops quick 1-tick edge taps (like 99.9%) from spamming notifications or resetting bars.
+    # Safety buffer to stop ownership from rapidly flickering on and off near 100%.
+    # Example: At 2.0%, defenders maintain full ownership until progress drops strictly below 98.0%.
     hysteresis_buffer_percent: 2.0
 
-    # Cooldown (in seconds) required before state changes trigger chat broadcasts.
-    # Example: If set to 1.0, players must contest or leave the pad for at least 1 full second
-    # before a "Contested" or "Uncontested" chat broadcast is triggered. Prevents chat spam.
+    # Stabilization delay (in seconds) required before leaving the contested combat state.
+    # Example: At 1.0s, enemies must stay off the pad for a full second before the contested alert clears.
     state_change_cooldown_seconds: 1.0
 
-  # Anti-Cheese & Fair Play Rules
-  anti_cheese:
-    line_of_sight: true
-    combat_damage_policy: "PAUSE_CAPTURE"
-    combat_pause_seconds: 5
-    disallow_godmode: true
-    disallow_flying: true
-    disallow_elytra: true
-    disallow_vanished: true
-    disallow_allied_stall: true
+# Optional per-outpost combat restrictions (falls back to config.yml if omitted)
+combat_restrictions:
+  # Prevents eating chorus fruit to glitch-teleport inside walls
+  prevent_chorus_fruit: true
+  # Disqualifies players from capturing while flying with Elytra wings
+  prevent_elytra_flight: true
+  # Prevents breaking blocks inside the capture zone
+  prevent_block_break: false
+  # Prevents placing blocks (e.g. cobwebs, lava, obsidian) on the pad
+  prevent_block_place: false
 
-# Economy and Combat Multipliers (Applied to the controlling faction)
+# Player perk multipliers awarded to the controlling player or faction members
 multipliers:
-  # Mob Spawner Speed Multiplier (1.5 = spawners spawn mobs 50% faster)
-  spawner_rate: 1.5
-  # Hostile Mob Item Drop Multiplier (1.75 = 75% more item drops from monsters)
+  # Extra items dropped from hostile mob kills (1.75 = +75% mob drops)
   mob_drop_rate: 1.75
-  # Experience Drop Multiplier (2.0 = 2x experience orbs)
+  # Extra experience points dropped from mob kills (2.0 = double EXP)
   exp_drop_rate: 2.0
-  # PvP Damage Multiplier (1.10 = 10% bonus damage dealt in player combat)
+  # PvP damage bonus dealt by controlling members (1.10 = +10% PvP damage)
   damage_rate: 1.10
-  # ShopGUI+ Sell Boost Multiplier (1.35 = 35% higher sale prices when selling items in shop)
+  # Bonus sell price when selling goods via ShopGUIPlus (1.35 = +35% money)
   shopgui_sell_rate: 1.35
 
-# Extensible Trigger-Condition-Action (TCA) Pipeline
+# Automated rewards and commands triggered by events
 actions:
+  # Executed when an outpost reaches 100% and is captured
   on_capture:
     - type: "BROADCAST"
-      message: "<prefix><white>The <#98fc98><team></#98fc98> faction has captured <#F07DB5><name></#F07DB5>!</white>"
+      message: "<prefix> <gold><team></gold> captured <name>!"
     - type: "COMMAND_CONSOLE_PER_PLAYER"
       command: "eco give %player% 5000"
-    - type: "TEAM_BANK_DEPOSIT"
-      amount: 1000.0
+
+  # Executed when defending control is knocked down and lost
   on_lost:
     - type: "BROADCAST"
-      message: "<prefix><white>The <#98fc98><team></#98fc98> faction lost control of <#F07DB5><name></#F07DB5>!</white>"
-  on_contest:
-    - type: "TITLE"
-      title: "<#E13148><bold>OUTPOST UNDER ATTACK</bold></#E13148>"
-      subtitle: "<#CECECE>Enemy forces are contesting <#F07DB5><name></#F07DB5>!</#CECECE>"
-      target: "DEFENDING_TEAM"
-  on_tick_reward:
-    interval_seconds: 30
-    actions:
-      - type: "COMMAND_CONSOLE_PER_PLAYER"
-        command: "eco give %player% 500"
-      - type: "TEAM_BANK_DEPOSIT"
-        amount: 250.0
-
-# ==========================================================
-# Dynamic Changing Outpost Engine
-# ==========================================================
-# Outposts can automatically switch between multiple regions.
-# You can also manage regions in-game via:
-#   /outpost region add <arena> <regionId> <name> [weight]
-#   /outpost region remove <arena> <regionId>
-#   /outpost region list <arena>
-#   /outpost region setweight <arena> <regionId> <weight>
-#   /outpost region shift <arena> [regionId]
-#
-dynamic_locations:
-  enabled: true
-  # Switch Trigger Modes:
-  # - INTERVAL:             Switches every switch_interval_seconds
-  # - RANDOM_INTERVAL:      Switches after a random duration between min and max seconds
-  # - SCHEDULED_TIMESTAMPS: Switches at specific elapsed event seconds (e.g. at 300, 600, 1200)
-  # - ON_CAPTURE:           Switches only when successfully captured
-  switch_mode: "INTERVAL"
-  switch_interval_seconds: 300
-  min_interval_seconds: 180
-  max_interval_seconds: 420
-  scheduled_timestamps: [ 300, 600, 900, 1200 ]
-  switch_on_capture: false
-
-  # Warnings dispatched to server before shifting (in seconds)
-  warning_seconds: [ 60, 30, 10, 5, 3, 2, 1 ]
-
-  # Warmup Delay: Seconds after shifting before capture pad activates, giving players time to adjust
-  activation_grace_seconds: 15
-
-  # Spawn Protection: Seconds of invulnerability granted to players upon warping or shifting
-  warp_invincibility_seconds: 10
-
-  # State Transition on Relocation:
-  # - KEEP_PROGRESS:          Preserves existing capture percentage and controlling team
-  # - RESET_PROGRESS:         Instantly resets progress to 0% and clears controller
-  # - RESET_IF_UNCONTROLLED:  Keeps controller if held, but resets if neutral or capturing
-  state_transition: "KEEP_PROGRESS"
-
-  # Player Transition on Relocation:
-  # - NONE:            Players remain where they were
-  # - TELEPORT_TO_NEW: Players currently standing in the old capture zone are teleported to the new warp
-  player_transition: "NONE"
-
-  # Avoid choosing the exact same region twice in a row
-  no_immediate_repeat: true
-
-  # Audio and visual cues upon relocation
-  effects:
-    enabled: true
-    sound: "ENTITY_ENDERMAN_TELEPORT"
-    beacon_beam: true
-
-  # Pool of candidate regions with chance weights: Chance = (weight / sum of all weights)
-  regions:
-    - id: "south_fortress"
-      name: "<#F07DB5>South Fortress</#F07DB5>"
-      weight: 50
-      world: "world"
-      min: { x: 362, y: 23, z: -1144 }
-      max: { x: 368, y: 27, z: -1138 }
-      warp: { x: 365.5, y: 28.0, z: -1141.5, yaw: 0.0, pitch: 0.0 }
-    - id: "south_docks"
-      name: "<#00B8FF>South Docks</#00B8FF>"
-      weight: 35
-      world: "world"
-      min: { x: -200, y: 60, z: 300 }
-      max: { x: -190, y: 75, z: 310 }
-      warp: { x: -195.0, y: 65.0, z: 305.0, yaw: 90.0, pitch: 0.0 }
-    - id: "south_ruins"
-      name: "<#AA62FF>South Ruins</#AA62FF>"
-      weight: 25
-      world: "world"
-      min: { x: 450, y: 60, z: -120 }
-      max: { x: 460, y: 75, z: -110 }
-      warp: { x: 455.5, y: 65.0, z: -115.5, yaw: 180.0, pitch: 0.0 }
-
-# ==========================================================
-# Per-Outpost Language & Telemetry Overrides (Optional)
-# ==========================================================
-# You can override ANY message, bossbar, actionbar, broadcast,
-# or status chip from lang.yml specifically for this outpost.
-# Leave this map empty ({}) to inherit all defaults from lang.yml.
-#
-# Examples:
-# lang:
-#   telemetry:
-#     actionbar: "%state% <dark_gray>| <white>%progress%%</white> %progress_bar% <dark_gray>| <#FF6C00>%cappers% <#CECECE>competing</#CECECE>"
-#     bossbar:
-#       controlled: "<#00F878>🛡 [South Nexus: <#98fc98>%team%</#98fc98>]</#00F878>"
-#       capturing: "<#FDC05C>▶ Capturing South Nexus</#FDC05C> <gray>▶</gray> <#98fc98>%capping%</#98fc98> <dark_gray>(<#FDC05C>%progress%%</#FDC05C>)</dark_gray>"
-#       contested: "<#E13148>⚔ Nexus Under Siege</#E13148> <gray>▶</gray> <dark_gray>(<#FF6C00>%cappers% fighting<dark_gray>)</dark_gray>"
-#   broadcasts:
-#     milestone: "<prefix><white>The South Outpost reached %milestone%% by %team%!</white>"
-#
-lang: {}
+      message: "<prefix> <gold><team></gold> lost control of <name>!"

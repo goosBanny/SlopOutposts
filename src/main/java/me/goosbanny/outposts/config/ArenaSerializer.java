@@ -283,7 +283,6 @@ public class ArenaSerializer {
                 multMap.put(key.toLowerCase(), multSec.getDouble(key));
             }
         } else {
-            multMap.put("spawner_rate", 1.5);
             multMap.put("mob_drop_rate", 1.75);
             multMap.put("exp_drop_rate", 2.0);
             multMap.put("damage_rate", 1.10);
@@ -458,6 +457,52 @@ public class ArenaSerializer {
         arena.setBoundingParticlesEnabled(boundingParticles);
         arena.setDynamicLocationConfig(dynamicConfig);
         arena.setCustomLangOverrides(langOverrides);
+
+        // Per-outpost overrides
+        if (yaml.contains("display.bossbar_range_blocks")) {
+            arena.setCustomBossbarRange(yaml.getInt("display.bossbar_range_blocks"));
+        } else if (yaml.contains("display.bossbar.range_blocks")) {
+            arena.setCustomBossbarRange(yaml.getInt("display.bossbar.range_blocks"));
+        } else if (yaml.contains("bossbar_range_blocks")) {
+            arena.setCustomBossbarRange(yaml.getInt("bossbar_range_blocks"));
+        }
+
+        if (yaml.contains("geometry.boundary_render_distance")) {
+            arena.setCustomBoundaryRenderDistance(yaml.getInt("geometry.boundary_render_distance"));
+        } else if (yaml.contains("display.boundary_render_distance")) {
+            arena.setCustomBoundaryRenderDistance(yaml.getInt("display.boundary_render_distance"));
+        }
+
+        if (yaml.contains("combat_restrictions.prevent_chorus_fruit")) {
+            arena.setCustomPreventChorusFruit(yaml.getBoolean("combat_restrictions.prevent_chorus_fruit"));
+        } else if (yaml.contains("protections.prevent_chorus_fruit")) {
+            arena.setCustomPreventChorusFruit(yaml.getBoolean("protections.prevent_chorus_fruit"));
+        }
+
+        if (yaml.contains("combat_restrictions.prevent_elytra_flight")) {
+            arena.setCustomPreventElytraFlight(yaml.getBoolean("combat_restrictions.prevent_elytra_flight"));
+        } else if (yaml.contains("protections.prevent_elytra_flight")) {
+            arena.setCustomPreventElytraFlight(yaml.getBoolean("protections.prevent_elytra_flight"));
+        }
+
+        if (yaml.contains("combat_restrictions.prevent_block_break")) {
+            arena.setCustomPreventBlockBreak(yaml.getBoolean("combat_restrictions.prevent_block_break"));
+        } else if (yaml.contains("protections.prevent_block_break")) {
+            arena.setCustomPreventBlockBreak(yaml.getBoolean("protections.prevent_block_break"));
+        }
+
+        if (yaml.contains("combat_restrictions.prevent_block_place")) {
+            arena.setCustomPreventBlockPlace(yaml.getBoolean("combat_restrictions.prevent_block_place"));
+        } else if (yaml.contains("protections.prevent_block_place")) {
+            arena.setCustomPreventBlockPlace(yaml.getBoolean("protections.prevent_block_place"));
+        }
+
+        if (yaml.contains("hooks.team_provider")) {
+            arena.setCustomTeamProvider(yaml.getString("hooks.team_provider"));
+        } else if (yaml.contains("team_provider")) {
+            arena.setCustomTeamProvider(yaml.getString("team_provider"));
+        }
+
         return arena;
     }
 
@@ -573,7 +618,6 @@ public class ArenaSerializer {
             yaml.set("mechanics.mode_settings.ticket_accumulation.tickets_per_second", def.getMechanicsConfig().getTicketsPerSecond());
         }
 
-        yaml.set("multipliers.spawner_rate", arena.getMultiplier("spawner_rate"));
         yaml.set("multipliers.mob_drop_rate", arena.getMultiplier("mob_drop_rate"));
         yaml.set("multipliers.exp_drop_rate", arena.getMultiplier("exp_drop_rate"));
         yaml.set("multipliers.damage_rate", arena.getMultiplier("damage_rate"));
