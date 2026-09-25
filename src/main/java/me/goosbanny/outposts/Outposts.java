@@ -70,6 +70,7 @@ public final class Outposts extends JavaPlugin {
     private OutpostsAsyncWorker asyncWorker;
     private FoliaCompatScheduler.TaskHandle displayTask;
     private long currentDisplayPeriod = 5L;
+    private OutpostsPlaceholderExpansion placeholderExpansion;
 
     public static Outposts getInstance() {
         return instance;
@@ -171,14 +172,15 @@ public final class Outposts extends JavaPlugin {
 
         // 8. Hook PlaceholderAPI if installed
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new OutpostsPlaceholderExpansion(
+            this.placeholderExpansion = new OutpostsPlaceholderExpansion(
                     arenaManager,
                     spatialGridManager,
                     teamHookManager.getRosterProvider(),
                     langManager,
                     scheduleManager,
                     getDescription().getVersion()
-            ).register();
+            );
+            this.placeholderExpansion.register();
             getLogger().info("[Hooks] Registered Outposts PlaceholderAPI expansion (%outpost_...%).");
         }
 
@@ -223,6 +225,11 @@ public final class Outposts extends JavaPlugin {
 
         if (bossBarManager != null) {
             bossBarManager.hideAll();
+        }
+
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
         }
 
         if (arenaManager != null) {
