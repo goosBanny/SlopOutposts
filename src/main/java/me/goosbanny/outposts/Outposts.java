@@ -336,7 +336,7 @@ public final class Outposts extends JavaPlugin {
                         arena.setActive(false);
                     }
                     arenaManager.registerArena(arena);
-                    getLogger().info("Loaded arena '" + arena.getId() + "' [" + arena.getCaptureModeType() + "]");
+                    getLogger().info("Loaded arena '" + arena.getId() + "' [" + arena.getCaptureModeType() + "] (active=" + arena.isActive() + ", auto_start=" + arena.isAutoStart() + ")");
                 }
             } catch (Exception e) {
                 getLogger().severe("Failed to load outpost arena from " + file.getName() + ": " + e.getMessage());

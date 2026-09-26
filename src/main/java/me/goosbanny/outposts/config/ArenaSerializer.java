@@ -181,7 +181,7 @@ public class ArenaSerializer {
 
         // 3. Mechanics
         boolean enabled = yaml.getBoolean("mechanics.enabled", true);
-        boolean autoStart = yaml.getBoolean("mechanics.auto_start", yaml.getBoolean("mechanics.autoload", false));
+        boolean autoStart = yaml.getBoolean("mechanics.auto_start", false);
         String occModeStr = yaml.getString("mechanics.occupancy_mode", yaml.getString("mechanics.team_mode", yaml.getString("occupancy_mode", "TEAM")));
         OccupancyMode occupancyMode = OccupancyMode.fromString(occModeStr);
         String modeStr = yaml.getString("mechanics.mode", "STANDARD_HILL").toUpperCase();
@@ -582,6 +582,7 @@ public class ArenaSerializer {
         }
 
         yaml.set("mechanics.enabled", true);
+        yaml.set("mechanics.auto_start", arena.isAutoStart());
         yaml.set("mechanics.occupancy_mode", arena.getOccupancyMode().name());
         yaml.set("mechanics.mode", arena.getCaptureModeType().name());
         yaml.set("mechanics.speed.percent_per_second", 2.5);
