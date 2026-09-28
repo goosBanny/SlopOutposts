@@ -161,12 +161,13 @@ public class ArenaMechanicsConfig {
         this.scalingPerMember = scalingPerMember >= 0 ? scalingPerMember : 0.5;
         this.maxCappersCounted = maxCappersCounted > 0 ? maxCappersCounted : 4;
         this.freezeWhenContested = freezeWhenContested;
-        this.loseControlThreshold = loseControlThreshold > 0 ? loseControlThreshold : 100.0;
+        double clampedThreshold = loseControlThreshold > 0.0 ? Math.min(100.0, loseControlThreshold) : 100.0;
+        this.loseControlThreshold = clampedThreshold;
         this.lockoutSeconds = lockoutSeconds >= 0 ? lockoutSeconds : 10;
         this.knockDelaySeconds = knockDelaySeconds >= 0 ? knockDelaySeconds : 5;
         this.passiveDecayEnabled = passiveDecayEnabled;
         this.passiveDecayRate = passiveDecayRate > 0 ? passiveDecayRate : 2.5;
-        this.hysteresisBufferPercent = hysteresisBufferPercent >= 0 ? hysteresisBufferPercent : 2.0;
+        this.hysteresisBufferPercent = Math.max(0.0, Math.min(clampedThreshold, hysteresisBufferPercent));
         this.stateChangeCooldownSeconds = stateChangeCooldownSeconds >= 0 ? stateChangeCooldownSeconds : 1.0;
         this.minCappersRequired = Math.max(1, minCappersRequired);
         this.neutralAnchorPercent = neutralAnchorPercent >= 0.0 && neutralAnchorPercent <= 100.0 ? neutralAnchorPercent : 50.0;

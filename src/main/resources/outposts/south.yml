@@ -101,8 +101,9 @@ mechanics:
       # Percent drained per second when the pad is empty
       rate_per_second: 2.5
 
-    # Safety buffer to stop ownership from rapidly flickering on and off near 100%.
-    # Example: At 2.0%, defenders maintain full ownership until progress drops strictly below 98.0%.
+    # Dead-band subtracted from lose_control_threshold to prevent ownership flickering at the boundary.
+    # Only active when lose_control_threshold is set below 100.0.
+    # Example: If lose_control_threshold is 60.0% and buffer is 2.0%, defenders lose control at < 58.0%.
     hysteresis_buffer_percent: 2.0
 
     # Stabilization delay (in seconds) required before leaving the contested combat state.

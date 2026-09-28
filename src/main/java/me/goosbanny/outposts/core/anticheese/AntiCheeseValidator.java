@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.util.RayTraceResult;
@@ -123,6 +124,16 @@ public class AntiCheeseValidator {
         if (config.isLineOfSight()) {
             Location center = arena.getCenterLocation();
             if (center != null && center.getWorld() != null && center.getWorld().equals(player.getWorld())) {
+                World world = center.getWorld();
+                int playerChunkX = player.getLocation().getBlockX() >> 4;
+                int playerChunkZ = player.getLocation().getBlockZ() >> 4;
+                int centerChunkX = center.getBlockX() >> 4;
+                int centerChunkZ = center.getBlockZ() >> 4;
+
+                if (!world.isChunkLoaded(playerChunkX, playerChunkZ) || !world.isChunkLoaded(centerChunkX, centerChunkZ)) {
+                    return false;
+                }
+
                 try {
                     Location eyeLoc = player.getEyeLocation();
                     Vector direction = center.toVector().subtract(eyeLoc.toVector());
@@ -130,7 +141,7 @@ public class AntiCheeseValidator {
 
                     if (distance > 0.5) {
                         direction.normalize();
-                        RayTraceResult result = center.getWorld().rayTraceBlocks(
+                        RayTraceResult result = world.rayTraceBlocks(
                                 eyeLoc,
                                 direction,
                                 distance,
@@ -148,7 +159,8 @@ public class AntiCheeseValidator {
                         }
                     }
                 } catch (Throwable ignored) {
-                    // Prevent cross-region boundary exceptions on Folia from aborting tick
+                    // If raytrace fails (e.g. cross-region boundary on Folia), fail-closed to avoid LoS bypass
+                    return false;
                 }
             }
         }

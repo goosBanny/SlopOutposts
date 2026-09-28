@@ -345,6 +345,7 @@ public final class Outposts extends JavaPlugin {
     }
 
     public void reload() {
+        DefaultOutpostArena.clearCaptureTimes();
         configManager.loadConfig();
         langManager.load();
         teamHookManager.detectAndInitialize(configManager.getPreferredTeamProvider());

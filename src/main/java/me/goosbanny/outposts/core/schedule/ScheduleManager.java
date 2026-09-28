@@ -120,50 +120,59 @@ public class ScheduleManager {
     /**
      * Loads or reloads schedules from the provided YamlConfiguration (schedules.yml).
      */
-    public void loadSchedules(@NotNull YamlConfiguration yaml) {
-        scheduleMap.clear();
-        arenaIdIndex.clear();
+    public synchronized void loadSchedules(@NotNull YamlConfiguration yaml) {
+        Map<String, ScheduleEntry> newScheduleMap = new ConcurrentHashMap<>();
+        Map<String, ScheduleEntry> newArenaIdIndex = new ConcurrentHashMap<>();
+
         ConfigurationSection sec = yaml.getConfigurationSection("schedules");
-        if (sec == null) {
-            return;
-        }
-
-        for (String key : sec.getKeys(false)) {
-            ConfigurationSection item = sec.getConfigurationSection(key);
-            if (item == null || !item.getBoolean("enabled", true)) {
-                continue;
-            }
-
-            try {
-                String arenaId = item.getString("arena", key);
-                String cronStr = item.getString("cron", "0 * * * *");
-                long duration = item.getLong("duration_minutes", 30);
-                boolean overtime = item.getBoolean("overtime.enabled", true);
-                long maxOvertime = item.getLong("overtime.max_overtime_minutes", 15);
-
-                List<BroadcastWarning> warnings = new ArrayList<>();
-                List<Map<?, ?>> warningList = item.getMapList("broadcasts");
-                for (Map<?, ?> w : warningList) {
-                    int mins = Integer.parseInt(String.valueOf(w.get("minutes_before")));
-                    String msg = String.valueOf(w.get("message"));
-                    warnings.add(new BroadcastWarning(mins, msg));
+        if (sec != null) {
+            for (String key : sec.getKeys(false)) {
+                ConfigurationSection item = sec.getConfigurationSection(key);
+                if (item == null || !item.getBoolean("enabled", true)) {
+                    continue;
                 }
 
-                CronExpression cron = new CronExpression(cronStr);
-                ScheduleEntry entry = new ScheduleEntry(key, arenaId, cron, duration, overtime, maxOvertime, warnings);
-                scheduleMap.put(key.toLowerCase(), entry);
-                arenaIdIndex.put(arenaId.toLowerCase(), entry);
+                try {
+                    String arenaId = item.getString("arena", key);
+                    String cronStr = item.getString("cron", "0 * * * *");
+                    long duration = item.getLong("duration_minutes", 30);
+                    boolean overtime = item.getBoolean("overtime.enabled", true);
+                    long maxOvertime = item.getLong("overtime.max_overtime_minutes", 15);
 
-                OutpostArena arena = arenaManager.getArena(arenaId);
-                if (arena != null) {
-                    arena.setActive(entry.isActive());
+                    List<BroadcastWarning> warnings = new ArrayList<>();
+                    List<Map<?, ?>> warningList = item.getMapList("broadcasts");
+                    for (Map<?, ?> w : warningList) {
+                        int mins = Integer.parseInt(String.valueOf(w.get("minutes_before")));
+                        String msg = String.valueOf(w.get("message"));
+                        warnings.add(new BroadcastWarning(mins, msg));
+                    }
+
+                    CronExpression cron = new CronExpression(cronStr);
+                    ScheduleEntry entry = new ScheduleEntry(key, arenaId, cron, duration, overtime, maxOvertime, warnings);
+                    newScheduleMap.put(key.toLowerCase(), entry);
+                    newArenaIdIndex.put(arenaId.toLowerCase(), entry);
+
+                    OutpostArena arena = arenaManager.getArena(arenaId);
+                    if (arena != null) {
+                        arena.setActive(entry.isActive());
+                    }
+
+                    logger.info("[Schedules] Loaded schedule '" + key + "' for arena '" + arenaId + "' [" + cronStr + "] Active: " + entry.isActive());
+                } catch (Exception e) {
+                    logger.warning("[Schedules] Failed to parse schedule '" + key + "': " + e.getMessage());
+                    String arenaId = item != null ? item.getString("arena", key) : key;
+                    OutpostArena arena = arenaManager.getArena(arenaId);
+                    if (arena != null && !arena.isAutoStart()) {
+                        arena.setActive(false);
+                    }
                 }
-
-                logger.info("[Schedules] Loaded schedule '" + key + "' for arena '" + arenaId + "' [" + cronStr + "] Active: " + entry.isActive());
-            } catch (Exception e) {
-                logger.warning("[Schedules] Failed to parse schedule '" + key + "': " + e.getMessage());
             }
         }
+
+        scheduleMap.clear();
+        scheduleMap.putAll(newScheduleMap);
+        arenaIdIndex.clear();
+        arenaIdIndex.putAll(newArenaIdIndex);
     }
 
     /**

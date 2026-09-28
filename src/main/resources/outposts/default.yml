@@ -90,9 +90,9 @@ mechanics:
     # Pauses capture progress when rival players are fighting inside the pad at the same time
     freeze_when_contested: true
     
-    # How far defenders must be knocked down before they lose control of the outpost.
-    # Default is 100.0 (defenders must be pushed all the way down from 100% to 0% to lose control).
-    # Example: If set to 60.0, attackers only need to drop the bar to 40% before the outpost neutralizes.
+    # Progress floor required for defenders to retain outpost control.
+    # Default is 100.0 (defenders must be pushed all the way down to 0% to lose control).
+    # If set below 100.0 (e.g. 60.0), defenders lose control early once progress drops below this threshold.
     lose_control_threshold: 100.0
     
     # Lockout cooldown in seconds after a capture during which the outpost cannot be contested
@@ -108,8 +108,9 @@ mechanics:
       # Percent drained per second when the pad is empty
       rate_per_second: 2.5
     
-    # Safety buffer to stop ownership from rapidly flickering on and off near 100%.
-    # Example: At 2.0%, defenders maintain full ownership until progress drops strictly below 98.0%.
+    # Dead-band subtracted from lose_control_threshold to prevent ownership flickering at the boundary.
+    # Only active when lose_control_threshold is set below 100.0.
+    # Example: If lose_control_threshold is 60.0% and buffer is 2.0%, defenders lose control at < 58.0%.
     hysteresis_buffer_percent: 2.0
     
     # Stabilization delay (in seconds) required before leaving the contested combat state.

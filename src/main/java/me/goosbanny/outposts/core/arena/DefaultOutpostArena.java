@@ -46,6 +46,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -58,7 +59,7 @@ public class DefaultOutpostArena implements OutpostArena {
     private final String id;
     private final Component displayName;
     private final String serializedDisplayName;
-    private ArenaGeometry geometry;
+    private volatile ArenaGeometry geometry;
     private final ArenaMechanicsConfig mechanicsConfig;
     private final ArenaMultipliers multipliers;
     private final TeamRosterProvider teamProvider;
@@ -73,18 +74,18 @@ public class DefaultOutpostArena implements OutpostArena {
     private volatile boolean active = false;
 
     // Mutable state
-    private ArenaState state = ArenaState.LOCKED;
-    private double progress = 0.0;
-    private String controllerTeamId = null;
-    private String controllerTeamName = null;
-    private String cappingTeamId = null;
-    private String cappingTeamName = null;
-    private int capperCount = 0;
-    private boolean isContested = false;
-    private long lockoutRemainingSeconds = 0;
-    private long timeControlledSeconds = 0;
-    private long tickCounter = 0;
-    private int lastAnnouncedMilestone = 0;
+    private volatile ArenaState state = ArenaState.LOCKED;
+    private volatile double progress = 0.0;
+    private volatile String controllerTeamId = null;
+    private volatile String controllerTeamName = null;
+    private volatile String cappingTeamId = null;
+    private volatile String cappingTeamName = null;
+    private volatile int capperCount = 0;
+    private volatile boolean isContested = false;
+    private volatile long lockoutRemainingSeconds = 0;
+    private volatile long timeControlledSeconds = 0;
+    private volatile long tickCounter = 0;
+    private volatile int lastAnnouncedMilestone = 0;
 
     // Debounce and Hysteresis
     private int contestDebounceSeconds = 0;
@@ -92,13 +93,9 @@ public class DefaultOutpostArena implements OutpostArena {
 
     // Cached immutable snapshot for concurrent readers (PAPI, GUIs, etc.)
     private final AtomicReference<ArenaViewSnapshot> cachedSnapshot = new AtomicReference<>();
-    private volatile boolean snapshotDirty = true;
+    private final AtomicBoolean snapshotDirty = new AtomicBoolean(true);
 
     // Reusable instance collections
-    private final List<Player> validCappers = new ArrayList<>(16);
-    private final Map<String, List<Player>> teamsPresent = new HashMap<>(8);
-    private final List<String> presentTeamIds = new ArrayList<>(8);
-    private final Map<String, Object> reusableContext = new HashMap<>(4);
     private final Set<UUID> playersInZone = ConcurrentHashMap.newKeySet();
     private static final Map<String, Long> LAST_CAPTURE_TIMES = new ConcurrentHashMap<>();
 
@@ -111,8 +108,8 @@ public class DefaultOutpostArena implements OutpostArena {
     private final Map<String, String> customLangOverrides = new ConcurrentHashMap<>();
     private final Random random = new Random();
     private boolean boundingParticlesEnabled = false;
-    private String clearingTeamName = null;
-    private long activeDurationRemainingSeconds = -1;
+    private volatile String clearingTeamName = null;
+    private volatile long activeDurationRemainingSeconds = -1;
 
     private Integer customBossbarRange = null;
     private Integer customBoundaryRenderDistance = null;
@@ -484,8 +481,9 @@ public class DefaultOutpostArena implements OutpostArena {
 
     @Override
     public ArenaView createSnapshot() {
-        if (snapshotDirty || cachedSnapshot.get() == null) {
-            cachedSnapshot.set(new ArenaViewSnapshot(
+        ArenaView current = cachedSnapshot.get();
+        if (snapshotDirty.get() || current == null) {
+            ArenaViewSnapshot fresh = new ArenaViewSnapshot(
                     id,
                     displayName,
                     state,
@@ -497,14 +495,16 @@ public class DefaultOutpostArena implements OutpostArena {
                     lockoutRemainingSeconds,
                     occupancyMode,
                     activeDurationRemainingSeconds
-            ));
-            snapshotDirty = false;
+            );
+            cachedSnapshot.set(fresh);
+            snapshotDirty.set(false);
+            return fresh;
         }
-        return cachedSnapshot.get();
+        return current;
     }
 
     private void updateSnapshot() {
-        this.snapshotDirty = true;
+        this.snapshotDirty.set(true);
     }
 
     @Override
@@ -590,20 +590,27 @@ public class DefaultOutpostArena implements OutpostArena {
         // Set to 100 so milestones don't re-fire while the pad is being knocked down
         this.lastAnnouncedMilestone = 100;
 
-        reusableContext.clear();
-        reusableContext.put("team", teamName);
-        reusableContext.put("team_id", teamId);
+        Map<String, Object> context = new HashMap<>(4);
+        context.put("team", teamName);
+        context.put("team_id", teamId);
         if (capturer != null) {
             Player capturerPlayer = Bukkit.getPlayer(capturer);
-            reusableContext.put("player", capturerPlayer != null ? capturerPlayer.getName() : capturer.toString());
+            context.put("player", capturerPlayer != null ? capturerPlayer.getName() : capturer.toString());
         }
-        actionPipeline.dispatch(ActionTrigger.ON_CAPTURE, this, reusableContext);
+        actionPipeline.dispatch(ActionTrigger.ON_CAPTURE, this, context);
         audioCueManager.playCaptureFanfare(this);
         updateSnapshot();
 
         if (dynamicLocationConfig.isEnabled() && dynamicLocationConfig.isSwitchOnCapture()) {
             shiftToRegion(null);
         }
+    }
+
+    /**
+     * Clears tracked team capture cooldowns (invoked during plugin configuration reloads).
+     */
+    public static void clearCaptureTimes() {
+        LAST_CAPTURE_TIMES.clear();
     }
 
     @Override
@@ -627,10 +634,10 @@ public class DefaultOutpostArena implements OutpostArena {
 
         if (prevTeamId != null) {
             Bukkit.getPluginManager().callEvent(new OutpostLostEvent(this, prevTeamId, prevTeamName));
-            reusableContext.clear();
-            reusableContext.put("team", prevTeamName != null ? prevTeamName : prevTeamId);
-            reusableContext.put("team_id", prevTeamId);
-            actionPipeline.dispatch(ActionTrigger.ON_LOST, this, reusableContext);
+            Map<String, Object> lostContext = new HashMap<>(4);
+            lostContext.put("team", prevTeamName != null ? prevTeamName : prevTeamId);
+            lostContext.put("team_id", prevTeamId);
+            actionPipeline.dispatch(ActionTrigger.ON_LOST, this, lostContext);
         }
         updateSnapshot();
     }
@@ -698,10 +705,10 @@ public class DefaultOutpostArena implements OutpostArena {
         if (controllerTeamId != null) {
             timeControlledSeconds++;
             if (!isContested && rewardIntervalSeconds > 0 && timeControlledSeconds % rewardIntervalSeconds == 0) {
-                reusableContext.clear();
-                reusableContext.put("team", controllerTeamName != null ? controllerTeamName : controllerTeamId);
-                reusableContext.put("team_id", controllerTeamId);
-                actionPipeline.dispatch(ActionTrigger.ON_TICK_REWARD, this, reusableContext);
+                Map<String, Object> rewardContext = new HashMap<>(4);
+                rewardContext.put("team", controllerTeamName != null ? controllerTeamName : controllerTeamId);
+                rewardContext.put("team_id", controllerTeamId);
+                actionPipeline.dispatch(ActionTrigger.ON_TICK_REWARD, this, rewardContext);
             }
         }
 
@@ -711,11 +718,9 @@ public class DefaultOutpostArena implements OutpostArena {
             return;
         }
 
-        validCappers.clear();
-        for (List<Player> list : teamsPresent.values()) {
-            list.clear();
-        }
-        teamsPresent.clear();
+        List<Player> validCappers = new ArrayList<>(16);
+        Map<String, List<Player>> teamsPresent = new HashMap<>(8);
+        List<String> presentTeamIds = new ArrayList<>(8);
 
         List<Player> nearbyCandidates = new ArrayList<>();
         try {
@@ -818,8 +823,8 @@ public class DefaultOutpostArena implements OutpostArena {
             if (!this.isContested) {
                 this.isContested = true;
                 Bukkit.getPluginManager().callEvent(new OutpostContestEvent(this, true));
-                reusableContext.clear();
-                actionPipeline.dispatch(ActionTrigger.ON_CONTEST, this, reusableContext);
+                Map<String, Object> contestContext = Collections.emptyMap();
+                actionPipeline.dispatch(ActionTrigger.ON_CONTEST, this, contestContext);
             }
         } else {
             // Leaving contestation applies debounce cooldown to prevent edge-knockback jitter
@@ -894,22 +899,27 @@ public class DefaultOutpostArena implements OutpostArena {
         // Only activates when lose_control_threshold is configured BELOW 100.0.
         // At the default 100.0, defenders keep control until progress hits 0%, which
         // StandardHillEngine.evaluateCapture() and handleAbandonment() already handle correctly.
-        // Example: threshold=10.0, buffer=2.0 → defender loses control once progress drops below 8.0%.
         if (controllerTeamId != null) {
             double threshold = mechanicsConfig.getLoseControlThreshold();
             if (threshold < 100.0 - 1e-4) {
                 double effectiveThreshold = threshold - mechanicsConfig.getHysteresisBufferPercent();
-                if (cappingTeamId != null && !cappingTeamId.equalsIgnoreCase(controllerTeamId)
-                        && progress < effectiveThreshold) {
-                    // Invader knocked below configured threshold — defender loses control early
-                    String invaderId = cappingTeamId;
-                    String invaderName = cappingTeamName;
-                    double savedProgress = Math.max(0.0, progress);
-                    resetToNeutral();
-                    // Preserve progress position and pass the pad to the invader
-                    this.progress = savedProgress;
-                    this.cappingTeamId = invaderId;
-                    this.cappingTeamName = invaderName;
+                if (progress < effectiveThreshold) {
+                    if (cappingTeamId != null && !cappingTeamId.equalsIgnoreCase(controllerTeamId)) {
+                        // Invader knocked below configured threshold — defender loses control early
+                        String invaderId = cappingTeamId;
+                        String invaderName = cappingTeamName;
+                        double savedProgress = Math.max(0.0, progress);
+                        resetToNeutral();
+                        // Preserve progress position and pass the pad to the invader
+                        this.progress = savedProgress;
+                        this.cappingTeamId = invaderId;
+                        this.cappingTeamName = invaderName;
+                    } else if (cappingTeamId == null) {
+                        // Progress drained below threshold due to abandonment decay with no invader present
+                        double savedProgress = Math.max(0.0, progress);
+                        resetToNeutral();
+                        this.progress = savedProgress;
+                    }
                 }
             }
             // Note: progress <= 0 case is handled inside StandardHillEngine and handleAbandonment()
@@ -1107,8 +1117,6 @@ public class DefaultOutpostArena implements OutpostArena {
         this.contestDebounceSeconds = 0;
         this.invaderHoldSeconds = 0;
         this.capperCount = 0;
-        this.validCappers.clear();
-        this.teamsPresent.clear();
         this.antiCheeseValidator.clearAll();
 
         ArenaRegion fromRegion = this.currentRegion;
@@ -1138,8 +1146,13 @@ public class DefaultOutpostArena implements OutpostArena {
             }
             case KEEP_PROGRESS -> {
                 if (dynamicLocationConfig.getPlayerTransition() == DynamicLocationConfig.PlayerTransition.NONE) {
-                    this.cappingTeamId = null;
-                    this.cappingTeamName = null;
+                    if (controllerTeamId == null) {
+                        // If uncontrolled and cappers left behind at old pad, wipe orphaned progress
+                        resetToNeutral();
+                    } else {
+                        this.cappingTeamId = null;
+                        this.cappingTeamName = null;
+                    }
                 }
             }
         }
