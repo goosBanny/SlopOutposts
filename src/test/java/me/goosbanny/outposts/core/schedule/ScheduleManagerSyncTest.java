@@ -137,4 +137,31 @@ public class ScheduleManagerSyncTest {
         scheduleManager.syncArenaState(arena);
         assertTrue(arena.isActive(), "Autoload arena should remain active even if outside schedule window");
     }
+
+    @Test
+    @DisplayName("Test ScheduleManager: Mid-window startup does not activate outpost")
+    public void testMidWindowRestartDoesNotStart() throws Exception {
+        SpatialGridManager spatial = new SpatialGridManager();
+        ArenaManager arenaManager = new ArenaManager(spatial, null);
+        DummyArena arena = new DummyArena("hourly_arena");
+        arena.setActive(false);
+        arenaManager.registerArena(arena);
+
+        ScheduleManager scheduleManager = new ScheduleManager(arenaManager, new LangManager(null), Logger.getAnonymousLogger());
+
+        String yamlStr = """
+        schedules:
+          hourly_war:
+            arena: "hourly_arena"
+            cron: "0 * * * *"
+            duration_minutes: 45
+            overtime:
+              enabled: false
+        """;
+        YamlDocument config = YamlDocument.create(new ByteArrayInputStream(yamlStr.getBytes(StandardCharsets.UTF_8)));
+        scheduleManager.loadSchedules(config);
+
+        scheduleManager.syncArenaState(arena);
+        assertFalse(arena.isActive(), "Arena must not activate mid-window on server start; must only run at exact scheduled time");
+    }
 }

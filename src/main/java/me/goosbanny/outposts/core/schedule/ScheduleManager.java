@@ -62,20 +62,18 @@ public class ScheduleManager {
             this.overtimeEnabled = overtimeEnabled;
             this.maxOvertimeMinutes = Math.max(0, maxOvertimeMinutes);
             this.warnings = warnings != null ? warnings : Collections.emptyList();
-            checkInitialWindow(ZonedDateTime.now(ZoneOffset.UTC), System.currentTimeMillis());
+            this.active = false;
+            this.inOvertime = false;
+            this.activeEndMillis = 0;
+            calculateNextStart();
         }
 
+        @Deprecated
         public void checkInitialWindow(@NotNull ZonedDateTime now, long nowMillis) {
-            for (int m = 0; m < durationMinutes; m++) {
-                ZonedDateTime candidate = now.minusMinutes(m);
-                if (cron.matches(candidate)) {
-                    this.active = true;
-                    this.inOvertime = false;
-                    this.activeEndMillis = nowMillis + (durationMinutes - m) * 60_000L;
-                    return;
-                }
-            }
+            // Deprecated: events only start at the exact scheduled cron match
             this.active = false;
+            this.inOvertime = false;
+            this.activeEndMillis = 0;
             calculateNextStart();
         }
 
@@ -156,6 +154,16 @@ public class ScheduleManager {
 
                     CronExpression cron = new CronExpression(cronStr);
                     ScheduleEntry entry = new ScheduleEntry(key, arenaId, cron, duration, overtime, maxOvertime, warnings);
+
+                    // Preserve active runtime state if already running during a hot-reload
+                    ScheduleEntry existing = scheduleMap.get(key.toLowerCase());
+                    if (existing != null && existing.isActive()) {
+                        entry.active = true;
+                        entry.inOvertime = existing.isInOvertime();
+                        entry.activeEndMillis = existing.getActiveEndMillis();
+                        entry.nextScheduledStart = existing.getNextScheduledStart();
+                    }
+
                     newScheduleMap.put(key.toLowerCase(), entry);
                     newArenaIdIndex.put(arenaId.toLowerCase(), entry);
 
