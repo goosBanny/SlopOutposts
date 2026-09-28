@@ -32,11 +32,11 @@ import me.goosbanny.outposts.core.pipeline.actions.SoundAction;
 import me.goosbanny.outposts.core.scheduler.FoliaCompatScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import dev.dejvokep.boostedyaml.YamlDocument;
+import dev.dejvokep.boostedyaml.block.implementation.Section;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -87,7 +87,14 @@ public class ArenaSerializer {
             return null;
         }
 
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+        YamlDocument yaml;
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("outposts/default.yml")) {
+            yaml = BoostedYamlFactory.createArenaDocument(file, in);
+        } catch (IOException e) {
+            Bukkit.getLogger().severe("[Outposts] Failed to load outpost configuration: " + file.getName() + " - " + e.getMessage());
+            return null;
+        }
+
         String id = yaml.getString("id", file.getName().replace(".yml", "")).toLowerCase();
 
         // 1. Meta
@@ -96,9 +103,11 @@ public class ArenaSerializer {
 
         // 2. Geometry
         String worldName = yaml.getString("geometry.world", "world");
-        World checkWorld = Bukkit.getWorld(worldName);
-        if (checkWorld == null) {
-            Bukkit.getLogger().warning("[Outposts] Warning: World '" + worldName + "' specified in outpost '" + id + "' is not loaded or does not exist!");
+        if (Bukkit.getServer() != null) {
+            World checkWorld = Bukkit.getWorld(worldName);
+            if (checkWorld == null) {
+                Bukkit.getLogger().warning("[Outposts] Warning: World '" + worldName + "' specified in outpost '" + id + "' is not loaded or does not exist!");
+            }
         }
 
         int minX = yaml.getInt("geometry.min.x", 0);
@@ -140,7 +149,9 @@ public class ArenaSerializer {
 
         // Auto-correct inverted coordinate bounds
         if (minX > maxX || minY > maxY || minZ > maxZ) {
-            Bukkit.getLogger().warning("[Outposts] Warning: Outpost '" + id + "' has inverted coordinate bounds. Auto-correcting.");
+            if (Bukkit.getServer() != null) {
+                Bukkit.getLogger().warning("[Outposts] Warning: Outpost '" + id + "' has inverted coordinate bounds. Auto-correcting.");
+            }
             int aMinX = Math.min(minX, maxX);
             int aMaxX = Math.max(minX, maxX);
             int aMinY = Math.min(minY, maxY);
@@ -156,7 +167,7 @@ public class ArenaSerializer {
 
         Location warpLoc = null;
         if (yaml.contains("geometry.warp")) {
-            World w = Bukkit.getWorld(worldName);
+            World w = Bukkit.getServer() != null ? Bukkit.getWorld(worldName) : null;
             if (yaml.isList("geometry.warp")) {
                 List<?> wList = yaml.getList("geometry.warp");
                 if (wList != null && wList.size() >= 3) {
@@ -168,11 +179,11 @@ public class ArenaSerializer {
                     warpLoc = new Location(w, wx, wy, wz, yaw, pitch);
                 }
             } else if (yaml.contains("geometry.warp.x")) {
-                double wx = yaml.getDouble("geometry.warp.x");
-                double wy = yaml.getDouble("geometry.warp.y");
-                double wz = yaml.getDouble("geometry.warp.z");
-                float yaw = (float) yaml.getDouble("geometry.warp.yaw", 0.0);
-                float pitch = (float) yaml.getDouble("geometry.warp.pitch", 0.0);
+                double wx = yaml.getDouble("geometry.warp.x", 0.0);
+                double wy = yaml.getDouble("geometry.warp.y", 60.0);
+                double wz = yaml.getDouble("geometry.warp.z", 0.0);
+                float yaw = (float) (double) yaml.getDouble("geometry.warp.yaw", 0.0);
+                float pitch = (float) (double) yaml.getDouble("geometry.warp.pitch", 0.0);
                 warpLoc = new Location(w, wx, wy, wz, yaw, pitch);
             }
         }
@@ -196,7 +207,9 @@ public class ArenaSerializer {
                 ? yaml.getDouble("mechanics.speed.percent_per_second")
                 : yaml.getDouble("mechanics.speed.percent_per_tick", 2.5);
         if (percentPerSecond <= 0.0) {
-            Bukkit.getLogger().warning("[Outposts] Warning: percent_per_second in outpost '" + id + "' must be positive (" + percentPerSecond + " given). Falling back to 2.5%/s.");
+            if (Bukkit.getServer() != null) {
+                Bukkit.getLogger().warning("[Outposts] Warning: percent_per_second in outpost '" + id + "' must be positive (" + percentPerSecond + " given). Falling back to 2.5%/s.");
+            }
             percentPerSecond = 2.5;
         }
 
@@ -211,8 +224,8 @@ public class ArenaSerializer {
 
         boolean freezeContested = yaml.getBoolean("mechanics.behavior.freeze_when_contested", true);
         double loseThreshold = yaml.getDouble("mechanics.behavior.lose_control_threshold", 100.0);
-        long lockoutSeconds = Math.max(0L, yaml.getLong("mechanics.behavior.lockout_seconds", 10));
-        long knockDelaySeconds = Math.max(0L, yaml.getLong("mechanics.behavior.knock_delay_seconds", 5));
+        long lockoutSeconds = Math.max(0L, yaml.getLong("mechanics.behavior.lockout_seconds", 10L));
+        long knockDelaySeconds = Math.max(0L, yaml.getLong("mechanics.behavior.knock_delay_seconds", 5L));
         boolean passiveDecayEnabled = yaml.getBoolean("mechanics.behavior.passive_decay.enabled", true);
         double passiveDecayRate = yaml.contains("mechanics.behavior.passive_decay.rate_per_second")
                 ? yaml.getDouble("mechanics.behavior.passive_decay.rate_per_second")
@@ -277,10 +290,11 @@ public class ArenaSerializer {
 
         // 5. Multipliers
         Map<String, Double> multMap = new HashMap<>();
-        ConfigurationSection multSec = yaml.getConfigurationSection("multipliers");
+        Section multSec = yaml.getSection("multipliers");
         if (multSec != null) {
-            for (String key : multSec.getKeys(false)) {
-                multMap.put(key.toLowerCase(), multSec.getDouble(key));
+            for (Object key : multSec.getKeys()) {
+                String k = String.valueOf(key);
+                multMap.put(k.toLowerCase(), multSec.getDouble(k, 1.0));
             }
         } else {
             multMap.put("mob_drop_rate", 1.75);
@@ -298,7 +312,7 @@ public class ArenaSerializer {
 
         long rewardInterval = 30;
         if (yaml.contains("actions.on_tick_reward.interval_seconds")) {
-            rewardInterval = yaml.getLong("actions.on_tick_reward.interval_seconds", 30);
+            rewardInterval = yaml.getLong("actions.on_tick_reward.interval_seconds", 30L);
             loadActions(yaml, "actions.on_tick_reward.actions", ActionTrigger.ON_TICK_REWARD, pipeline);
         } else if (yaml.contains("actions.on_tick_reward")) {
             loadActions(yaml, "actions.on_tick_reward", ActionTrigger.ON_TICK_REWARD, pipeline);
@@ -315,12 +329,12 @@ public class ArenaSerializer {
                 switchMode = DynamicLocationConfig.SwitchMode.INTERVAL;
             }
 
-            long interval = yaml.getLong("dynamic_locations.switch_interval_seconds", 300);
-            long minInterval = yaml.getLong("dynamic_locations.min_interval_seconds", 180);
-            long maxInterval = yaml.getLong("dynamic_locations.max_interval_seconds", 420);
+            long interval = yaml.getLong("dynamic_locations.switch_interval_seconds", 300L);
+            long minInterval = yaml.getLong("dynamic_locations.min_interval_seconds", 180L);
+            long maxInterval = yaml.getLong("dynamic_locations.max_interval_seconds", 420L);
             List<Long> timestamps = yaml.getLongList("dynamic_locations.scheduled_timestamps");
             boolean switchOnCap = yaml.getBoolean("dynamic_locations.switch_on_capture", false);
-            List<Integer> warnings = yaml.getIntegerList("dynamic_locations.warning_seconds");
+            List<Integer> warnings = yaml.getIntList("dynamic_locations.warning_seconds");
             if (warnings.isEmpty()) warnings = List.of(60, 30, 10, 5, 3, 2, 1);
             int grace = yaml.getInt("dynamic_locations.activation_grace_seconds", 5);
             int invincibility = yaml.getInt("dynamic_locations.warp_invincibility_seconds", 5);
@@ -353,9 +367,11 @@ public class ArenaSerializer {
                 String rName = rm.containsKey("name") ? String.valueOf(rm.get("name")) : null;
                 int rWeight = Math.max(0, parseIntSafe(rm.get("weight"), 50));
                 String rWorld = rm.containsKey("world") ? String.valueOf(rm.get("world")) : worldName;
-                World checkRWorld = Bukkit.getWorld(rWorld);
-                if (checkRWorld == null) {
-                    Bukkit.getLogger().warning("[Outposts] Warning: World '" + rWorld + "' in dynamic region '" + rId + "' of outpost '" + id + "' is not loaded!");
+                if (Bukkit.getServer() != null) {
+                    World checkRWorld = Bukkit.getWorld(rWorld);
+                    if (checkRWorld == null) {
+                        Bukkit.getLogger().warning("[Outposts] Warning: World '" + rWorld + "' in dynamic region '" + rId + "' of outpost '" + id + "' is not loaded!");
+                    }
                 }
 
                 int rx1 = 0, ry1 = 64, rz1 = 0, rx2 = 10, ry2 = 74, rz2 = 10;
@@ -401,7 +417,7 @@ public class ArenaSerializer {
 
                 Location rWarp = null;
                 if (rm.containsKey("warp")) {
-                    World rw = Bukkit.getWorld(rWorld);
+                    World rw = Bukkit.getServer() != null ? Bukkit.getWorld(rWorld) : null;
                     if (rm.get("warp") instanceof List<?> wList && wList.size() >= 3) {
                         double rwx = parseDoubleSafe(wList.get(0), 0.0);
                         double rwy = parseDoubleSafe(wList.get(1), 64.0);
@@ -431,11 +447,11 @@ public class ArenaSerializer {
 
         // 8. Per-Outpost Language Overrides
         Map<String, String> langOverrides = new HashMap<>();
-        if (yaml.contains("lang") && yaml.isConfigurationSection("lang")) {
-            ConfigurationSection langSec = yaml.getConfigurationSection("lang");
+        if (yaml.contains("lang") && yaml.isSection("lang")) {
+            Section langSec = yaml.getSection("lang");
             if (langSec != null) {
-                for (String key : langSec.getKeys(true)) {
-                    if (!langSec.isConfigurationSection(key)) {
+                for (String key : langSec.getRoutesAsStrings(true)) {
+                    if (!langSec.isSection(key)) {
                         langOverrides.put(key, langSec.getString(key));
                     }
                 }
@@ -506,7 +522,7 @@ public class ArenaSerializer {
         return arena;
     }
 
-    private void loadActions(YamlConfiguration yaml, String path, ActionTrigger trigger, DefaultActionPipeline pipeline) {
+    private void loadActions(Section yaml, String path, ActionTrigger trigger, DefaultActionPipeline pipeline) {
         if (!yaml.contains(path)) return;
 
         List<Map<?, ?>> actionList = yaml.getMapList(path);
@@ -545,9 +561,13 @@ public class ArenaSerializer {
                     String target = map.containsKey("target") ? String.valueOf(map.get("target")) : null;
                     pipeline.addAction(trigger, new TitleAction(title, subtitle, target, teamProvider, scheduler));
                 }
-                default -> Bukkit.getLogger().warning(
-                    "[Outposts] Unknown action type '" + type + "' in path '" + path + "'. Check your arena YAML."
-                );
+                default -> {
+                    if (Bukkit.getServer() != null) {
+                        Bukkit.getLogger().warning(
+                            "[Outposts] Unknown action type '" + type + "' in path '" + path + "'. Check your arena YAML."
+                        );
+                    }
+                }
             }
         }
     }
@@ -556,7 +576,10 @@ public class ArenaSerializer {
      * Saves a newly created outpost arena to its respective YAML file.
      */
     public void saveToFile(@NotNull OutpostArena arena, @NotNull File file) throws IOException {
-        YamlConfiguration yaml = new YamlConfiguration();
+        YamlDocument yaml;
+        try (InputStream templateStream = getClass().getClassLoader().getResourceAsStream("outposts/default.yml")) {
+            yaml = BoostedYamlFactory.createArenaDocument(file, templateStream);
+        }
         yaml.set("id", arena.getId());
         yaml.set("meta.name", MiniMessage.miniMessage().serialize(arena.getDisplayName()));
 
@@ -569,16 +592,25 @@ public class ArenaSerializer {
         yaml.set("geometry.max.z", arena.getMaxZ());
         yaml.set("geometry.bounding_particles", arena.isBoundingParticlesEnabled());
 
-        Location warp = arena.getWarpLocation();
-        if (warp == null) {
-            warp = arena.getCenterLocation();
-        }
-        if (warp != null) {
-            yaml.set("geometry.warp.x", warp.getX());
-            yaml.set("geometry.warp.y", warp.getY());
-            yaml.set("geometry.warp.z", warp.getZ());
-            yaml.set("geometry.warp.yaw", warp.getYaw());
-            yaml.set("geometry.warp.pitch", warp.getPitch());
+        if (arena instanceof DefaultOutpostArena def && def.getGeometry() != null && def.getGeometry().hasWarp()) {
+            ArenaGeometry geom = def.getGeometry();
+            yaml.set("geometry.warp.x", geom.getWarpX());
+            yaml.set("geometry.warp.y", geom.getWarpY());
+            yaml.set("geometry.warp.z", geom.getWarpZ());
+            yaml.set("geometry.warp.yaw", (double) geom.getWarpYaw());
+            yaml.set("geometry.warp.pitch", (double) geom.getWarpPitch());
+        } else {
+            Location warp = arena.getWarpLocation();
+            if (warp == null) {
+                warp = arena.getCenterLocation();
+            }
+            if (warp != null) {
+                yaml.set("geometry.warp.x", warp.getX());
+                yaml.set("geometry.warp.y", warp.getY());
+                yaml.set("geometry.warp.z", warp.getZ());
+                yaml.set("geometry.warp.yaw", (double) warp.getYaw());
+                yaml.set("geometry.warp.pitch", (double) warp.getPitch());
+            }
         }
 
         yaml.set("mechanics.enabled", true);
@@ -693,7 +725,7 @@ public class ArenaSerializer {
             }
         }
 
-        yaml.save(file);
+        yaml.save();
     }
 
     /**
@@ -771,25 +803,10 @@ public class ArenaSerializer {
             return;
         }
 
-        // Fallback to YamlConfiguration if template reading failed
-        YamlConfiguration yaml = new YamlConfiguration();
-        if (templateFile.exists()) {
-            try {
-                yaml.load(templateFile);
-            } catch (Exception e) {
-                throw new IOException("Failed to load template file: " + e.getMessage(), e);
-            }
-        } else {
-            // Fallback: read from bundled plugin jar resources
-            try (InputStream in = getClass().getClassLoader().getResourceAsStream("outposts/default.yml")) {
-                if (in != null) {
-                    try {
-                        yaml.load(new InputStreamReader(in, StandardCharsets.UTF_8));
-                    } catch (Exception e) {
-                        throw new IOException("Failed to parse bundled template resource: " + e.getMessage(), e);
-                    }
-                }
-            }
+        // Fallback to BoostedYaml if template reading failed
+        YamlDocument yaml;
+        try (InputStream in = templateFile.exists() ? Files.newInputStream(templateFile.toPath()) : getClass().getClassLoader().getResourceAsStream("outposts/default.yml")) {
+            yaml = BoostedYamlFactory.createArenaDocument(targetFile, in);
         }
         yaml.set("id", id);
         String capitalizedId = !id.isEmpty() ? (id.substring(0, 1).toUpperCase() + id.substring(1)) : id;
@@ -806,16 +823,13 @@ public class ArenaSerializer {
         yaml.set("geometry.warp.x", Math.round(warpLoc.getX() * 10.0) / 10.0);
         yaml.set("geometry.warp.y", Math.round(warpLoc.getY() * 10.0) / 10.0);
         yaml.set("geometry.warp.z", Math.round(warpLoc.getZ() * 10.0) / 10.0);
-        yaml.set("geometry.warp.yaw", Math.round(warpLoc.getYaw() * 10.0) / 10.0);
-        yaml.set("geometry.warp.pitch", Math.round(warpLoc.getPitch() * 10.0) / 10.0);
+        yaml.set("geometry.warp.yaw", (double) Math.round(warpLoc.getYaw() * 10.0) / 10.0);
+        yaml.set("geometry.warp.pitch", (double) Math.round(warpLoc.getPitch() * 10.0) / 10.0);
 
         yaml.set("mechanics.occupancy_mode", occupancyMode.name());
         yaml.set("mechanics.mode", captureMode.name());
 
-        if (targetFile.getParentFile() != null) {
-            targetFile.getParentFile().mkdirs();
-        }
-        yaml.save(targetFile);
+        yaml.save();
     }
 
     private static int parseIntSafe(Object val, int fallback) {

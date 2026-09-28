@@ -1,3 +1,5 @@
+config-version: 1
+
 schedules:
   weekend_war:
     arena: "south"

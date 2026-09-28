@@ -11,12 +11,13 @@ import me.goosbanny.outposts.core.arena.DynamicLocationConfig;
 import me.goosbanny.outposts.core.manager.ArenaManager;
 import me.goosbanny.outposts.core.manager.SpatialGridManager;
 import net.kyori.adventure.text.Component;
+import dev.dejvokep.boostedyaml.YamlDocument;
 import org.bukkit.Location;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -102,7 +103,7 @@ public class ScheduleManagerSyncTest {
             overtime:
               enabled: false
         """;
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(new StringReader(yamlStr));
+        YamlDocument config = YamlDocument.create(new ByteArrayInputStream(yamlStr.getBytes(StandardCharsets.UTF_8)));
         scheduleManager.loadSchedules(config);
 
         scheduleManager.syncArenaState(arena);
@@ -130,7 +131,7 @@ public class ScheduleManagerSyncTest {
             overtime:
               enabled: false
         """;
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(new StringReader(yamlStr));
+        YamlDocument config = YamlDocument.create(new ByteArrayInputStream(yamlStr.getBytes(StandardCharsets.UTF_8)));
         scheduleManager.loadSchedules(config);
 
         scheduleManager.syncArenaState(arena);

@@ -2,6 +2,7 @@
 # Outposts - Arena Configuration: south
 # Complete showcase arena demonstrating all configuration options.
 # ==============================================================================
+config-version: 1
 
 # Unique identifier for this outpost (matches the file name: south.yml)
 id: "south"

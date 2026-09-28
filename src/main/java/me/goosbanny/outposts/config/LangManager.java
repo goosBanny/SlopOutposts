@@ -3,7 +3,8 @@ package me.goosbanny.outposts.config;
 import me.goosbanny.outposts.api.arena.OutpostArena;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.configuration.file.YamlConfiguration;
+import dev.dejvokep.boostedyaml.YamlDocument;
+import java.io.IOException;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,18 +14,17 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages plugin localization, configurable messages, and PlaceholderAPI token formatting.
  */
-import java.util.concurrent.ConcurrentHashMap;
-
 public class LangManager {
 
     private final Plugin plugin;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final Map<String, Component> staticComponentCache = new ConcurrentHashMap<>();
-    private YamlConfiguration langConfig;
+    private volatile YamlDocument langConfig;
     private String prefix = "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ";
 
     public LangManager(@NotNull Plugin plugin) {
@@ -32,29 +32,30 @@ public class LangManager {
     }
 
     public void load() {
-        String locale = plugin.getConfig().getString("system.locale", "en_US");
+        String locale = "en_US";
+        if (plugin instanceof me.goosbanny.outposts.Outposts outposts && outposts.getConfigManager().getRootConfig() != null) {
+            locale = outposts.getConfigManager().getRootConfig().getString("system.locale", "en_US");
+        }
         String fileName = locale != null && !locale.equalsIgnoreCase("en_US") && new File(plugin.getDataFolder(), "lang_" + locale + ".yml").exists()
                 ? "lang_" + locale + ".yml"
                 : "lang.yml";
         File file = new File(plugin.getDataFolder(), fileName);
-        if (!file.exists()) {
-            try (InputStream in = plugin.getResource(fileName)) {
-                if (in != null) {
-                    Files.copy(in, file.toPath());
-                } else if (!fileName.equals("lang.yml")) {
-                    try (InputStream defaultIn = plugin.getResource("lang.yml")) {
-                        if (defaultIn != null) {
-                            Files.copy(defaultIn, file.toPath());
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                plugin.getLogger().warning("Could not extract default " + fileName + ": " + e.getMessage());
-            }
+
+        InputStream defaultResource = plugin.getResource(fileName);
+        if (defaultResource == null) {
+            defaultResource = plugin.getResource("lang.yml");
         }
 
-        this.langConfig = YamlConfiguration.loadConfiguration(file);
-        this.prefix = langConfig.getString("prefix", "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ");
+        try {
+            this.langConfig = BoostedYamlFactory.createRootDocument(file, defaultResource);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to load language file " + fileName + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        if (this.langConfig != null) {
+            this.prefix = langConfig.getString("prefix", "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ");
+        }
         this.staticComponentCache.clear();
     }
 

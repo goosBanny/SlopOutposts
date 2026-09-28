@@ -5,8 +5,8 @@ import me.goosbanny.outposts.config.LangManager;
 import me.goosbanny.outposts.core.manager.ArenaManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+import dev.dejvokep.boostedyaml.YamlDocument;
+import dev.dejvokep.boostedyaml.block.implementation.Section;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -118,16 +118,21 @@ public class ScheduleManager {
     }
 
     /**
-     * Loads or reloads schedules from the provided YamlConfiguration (schedules.yml).
+     * Loads or reloads schedules from the provided YamlDocument (schedules.yml).
      */
-    public synchronized void loadSchedules(@NotNull YamlConfiguration yaml) {
+    public synchronized void loadSchedules(@Nullable YamlDocument yaml) {
+        if (yaml == null) {
+            return;
+        }
+
         Map<String, ScheduleEntry> newScheduleMap = new ConcurrentHashMap<>();
         Map<String, ScheduleEntry> newArenaIdIndex = new ConcurrentHashMap<>();
 
-        ConfigurationSection sec = yaml.getConfigurationSection("schedules");
+        Section sec = yaml.getSection("schedules");
         if (sec != null) {
-            for (String key : sec.getKeys(false)) {
-                ConfigurationSection item = sec.getConfigurationSection(key);
+            for (Object rawKey : sec.getKeys()) {
+                String key = String.valueOf(rawKey);
+                Section item = sec.getSection(key);
                 if (item == null || !item.getBoolean("enabled", true)) {
                     continue;
                 }
@@ -135,16 +140,18 @@ public class ScheduleManager {
                 try {
                     String arenaId = item.getString("arena", key);
                     String cronStr = item.getString("cron", "0 * * * *");
-                    long duration = item.getLong("duration_minutes", 30);
+                    long duration = item.getLong("duration_minutes", 30L);
                     boolean overtime = item.getBoolean("overtime.enabled", true);
-                    long maxOvertime = item.getLong("overtime.max_overtime_minutes", 15);
+                    long maxOvertime = item.getLong("overtime.max_overtime_minutes", 15L);
 
                     List<BroadcastWarning> warnings = new ArrayList<>();
                     List<Map<?, ?>> warningList = item.getMapList("broadcasts");
-                    for (Map<?, ?> w : warningList) {
-                        int mins = Integer.parseInt(String.valueOf(w.get("minutes_before")));
-                        String msg = String.valueOf(w.get("message"));
-                        warnings.add(new BroadcastWarning(mins, msg));
+                    if (warningList != null) {
+                        for (Map<?, ?> w : warningList) {
+                            int mins = Integer.parseInt(String.valueOf(w.get("minutes_before")));
+                            String msg = String.valueOf(w.get("message"));
+                            warnings.add(new BroadcastWarning(mins, msg));
+                        }
                     }
 
                     CronExpression cron = new CronExpression(cronStr);

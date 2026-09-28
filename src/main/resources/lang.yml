@@ -2,6 +2,7 @@
 # Outposts (v1.0.0) — Localization & Language Configuration
 # All messages use MiniMessage formatting with modern hex colors and standard glyphs.
 # ==============================================================================
+config-version: 1
 
 # Global chat prefix prepended to all plugin communications
 # Brand Red (#E13148) bold title followed by gray separator ▶

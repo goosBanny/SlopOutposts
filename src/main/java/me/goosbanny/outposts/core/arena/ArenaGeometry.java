@@ -83,6 +83,7 @@ public class ArenaGeometry {
 
     @Nullable
     public Location getCenterLocation() {
+        if (Bukkit.getServer() == null) return null;
         World world = Bukkit.getWorld(worldName);
         if (world == null) return null;
         return new Location(world, (minX + maxX) / 2.0 + 0.5, (minY + maxY) / 2.0 + 0.5, (minZ + maxZ) / 2.0 + 0.5);
@@ -90,6 +91,7 @@ public class ArenaGeometry {
 
     @Nullable
     public Location getWarpLocation() {
+        if (Bukkit.getServer() == null) return null;
         World world = Bukkit.getWorld(worldName);
         if (world == null) return null;
         return new Location(world, warpX, warpY, warpZ, warpYaw, warpPitch);

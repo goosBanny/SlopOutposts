@@ -3,6 +3,7 @@
 # Template Identifier: default
 # Exhaustive configuration template with comprehensive inline architectural documentation.
 # ==============================================================================
+config-version: 1
 
 # Unique alphanumeric identifier for this outpost arena.
 # Value Type: String (Alphanumeric, lowercase recommended). Must match filename: <id>.yml.
