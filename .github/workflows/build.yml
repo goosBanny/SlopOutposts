@@ -35,7 +35,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build and Test with Gradle
-        run: ./gradlew build -Dorg.gradle.java.home="$JAVA_HOME"
+        run: ./gradlew clean build -Dorg.gradle.java.home="$JAVA_HOME"
 
       - name: Upload compiled plugin artifact
         uses: actions/upload-artifact@v4
@@ -43,6 +43,17 @@ jobs:
           name: Outposts-Release
           path: build/libs/Outposts-*.jar
           if-no-files-found: error
+
+      - name: Purge old release assets
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/')
+        run: |
+          for asset in $(gh release view latest --repo ${{ github.repository }} --json assets -q '.assets[].name' 2>/dev/null || true); do
+            echo "Deleting old release asset: $asset"
+            gh release delete-asset latest "$asset" --repo ${{ github.repository }} -y || true
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Latest GitHub Release
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/')
