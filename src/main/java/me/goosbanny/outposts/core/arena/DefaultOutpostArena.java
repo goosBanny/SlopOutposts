@@ -638,6 +638,8 @@ public class DefaultOutpostArena implements OutpostArena {
             Map<String, Object> lostContext = new HashMap<>(4);
             lostContext.put("team", prevTeamName != null ? prevTeamName : prevTeamId);
             lostContext.put("team_id", prevTeamId);
+            lostContext.put("previous_team", prevTeamName != null ? prevTeamName : prevTeamId);
+            lostContext.put("previous_team_id", prevTeamId);
             actionPipeline.dispatch(ActionTrigger.ON_LOST, this, lostContext);
         }
         updateSnapshot();
@@ -709,6 +711,7 @@ public class DefaultOutpostArena implements OutpostArena {
                 Map<String, Object> rewardContext = new HashMap<>(4);
                 rewardContext.put("team", controllerTeamName != null ? controllerTeamName : controllerTeamId);
                 rewardContext.put("team_id", controllerTeamId);
+                rewardContext.put("seconds_held", timeControlledSeconds);
                 actionPipeline.dispatch(ActionTrigger.ON_TICK_REWARD, this, rewardContext);
             }
         }
@@ -824,7 +827,23 @@ public class DefaultOutpostArena implements OutpostArena {
             if (!this.isContested) {
                 this.isContested = true;
                 Bukkit.getPluginManager().callEvent(new OutpostContestEvent(this, true));
-                Map<String, Object> contestContext = Collections.emptyMap();
+                Map<String, Object> contestContext = new HashMap<>(4);
+                if (controllerTeamId != null) {
+                    contestContext.put("team", controllerTeamName != null ? controllerTeamName : controllerTeamId);
+                    contestContext.put("team_id", controllerTeamId);
+                }
+                for (String tid : teamsPresent.keySet()) {
+                    if (!tid.equalsIgnoreCase(controllerTeamId) && (controllerTeamId == null || !teamProvider.areAllies(tid, controllerTeamId))) {
+                        contestContext.put("invader_team_id", tid);
+                        List<Player> invaderMembers = teamsPresent.get(tid);
+                        if (invaderMembers != null && !invaderMembers.isEmpty()) {
+                            contestContext.put("invader", invaderMembers.get(0).getName());
+                            String invaderName = teamProvider.getTeamName(invaderMembers.get(0));
+                            contestContext.put("invader_team", invaderName != null ? invaderName : tid);
+                        }
+                        break;
+                    }
+                }
                 actionPipeline.dispatch(ActionTrigger.ON_CONTEST, this, contestContext);
             }
         } else {

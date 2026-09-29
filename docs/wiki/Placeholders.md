@@ -20,6 +20,7 @@ Replace `<id>` with the unique ID of your outpost (e.g. `south`, `desert`, `neth
 | `%outpost_capping_team_<id>%` | `Spartans` | Name of the active capturing faction, or `None`. |
 | `%outpost_capper_count_<id>%` | `3` | Number of valid players currently inside the zone. |
 | `%outpost_time_controlled_<id>%` | `01:45:20` | Formatted duration the controlling team has held the outpost. |
+| `%outpost_time_remaining_<id>%` | `28:45` / `Infinite` | Formatted remaining duration on the active capture event window. |
 | `%outpost_lock_remaining_<id>%` | `04:15` | Remaining duration on post-capture lockout. |
 | `%outpost_<id>_coords%` | `105, 65, 105` | Formatted center coordinates of active region. |
 | `%outpost_<id>_x%` / `%y%` / `%z%` | `105` / `65` / `105` | Individual coordinate integers. |

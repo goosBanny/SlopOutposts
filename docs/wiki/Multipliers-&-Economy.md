@@ -23,42 +23,15 @@ If a faction controls multiple outposts with different multipliers, the engine e
 
 ---
 
-## 3. Action Pipeline
+## 3. Automated Rewards & Action Pipeline
 
-Each outpost configuration features a trigger pipeline:
+Each outpost supports an extensive action pipeline capable of awarding cash, crate keys, titles, chat notifications, and executing console commands across multiple triggers:
 - `on_capture`: Executes immediately when a team reaches 100% and secures the outpost.
 - `on_lost`: Executes when the defending team is knocked down and loses control.
 - `on_contest`: Executes when enemy forces enter the pad and contest the point.
-- `on_tick_reward`: Dispatches repeating payouts at configured intervals.
+- `on_tick_reward`: Dispatches repeating payouts at configured intervals (with support for 5-minute milestone bonuses via `every_seconds: 300`).
 
-### Built-in Action Types
-- **`BROADCAST`**: Broadcasts MiniMessage formatted text to the server.
-  ```yaml
-  - type: "BROADCAST"
-    message: "<prefix> <gold><team></gold> captured <name>!"
-  ```
-- **`COMMAND_CONSOLE`**: Executes a command from the server console.
-  ```yaml
-  - type: "COMMAND_CONSOLE"
-    target: "TEAM_ONLINE" # Dispatches command for every online member of the faction
-    command: "eco give %player% 2500"
-  ```
-- **`FACTION_BANK_DEPOSIT`**: Directly deposits currency into the team bank via Vault or ZelTeams Team Bank.
-  ```yaml
-  - type: "FACTION_BANK_DEPOSIT"
-    amount: 1000.0
-  ```
-- **`SOUND`**: Plays an Adventure sound effect.
-  ```yaml
-  - type: "SOUND"
-    sound: "minecraft:ui.toast.challenge_complete"
-    volume: 1.0
-    pitch: 1.0
-  ```
-- **`TITLE`**: Sends an Adventure Title & Subtitle.
-  ```yaml
-  - type: "TITLE"
-    target: "DEFENDING_TEAM"
-    title: "<red><bold>OUTPOST UNDER ATTACK</bold></red>"
-    subtitle: "<gray>Enemy forces are contesting the South Outpost!</gray>"
-  ```
+👉 **Explore the full guides:**
+- **[Actions & Triggers Reference](Actions-&-Triggers)** — Complete target selectors, tokens, and action specifications.
+- **[Creating Rewards Cookbook](Creating-Rewards)** — Ready-to-copy configurations for faction bank payouts, milestone bonuses, and tactical alerts.
+

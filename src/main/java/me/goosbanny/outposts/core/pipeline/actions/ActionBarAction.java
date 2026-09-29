@@ -1,44 +1,39 @@
 package me.goosbanny.outposts.core.pipeline.actions;
 
+import me.goosbanny.outposts.Outposts;
 import me.goosbanny.outposts.api.arena.OccupancyMode;
 import me.goosbanny.outposts.api.arena.OutpostArena;
 import me.goosbanny.outposts.api.pipeline.ArenaAction;
 import me.goosbanny.outposts.api.team.TeamRosterProvider;
+import me.goosbanny.outposts.core.pipeline.ActionTargetResolver;
 import me.goosbanny.outposts.core.scheduler.FoliaCompatScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.title.Title;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
- * Action that sends Adventure Titles & Subtitles to target players or teams.
+ * Action that displays an Adventure MiniMessage action bar to target players or teams.
  */
-public class TitleAction implements ArenaAction {
+public class ActionBarAction implements ArenaAction {
 
-    private final String titleText;
-    private final String subtitleText;
+    private final String messageTemplate;
     private final String target;
     private final TeamRosterProvider teamProvider;
     private final FoliaCompatScheduler scheduler;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public TitleAction(
-            @NotNull String titleText,
-            @NotNull String subtitleText,
+    public ActionBarAction(
+            @NotNull String messageTemplate,
             @Nullable String target,
             @NotNull TeamRosterProvider teamProvider,
             @NotNull FoliaCompatScheduler scheduler
     ) {
-        this.titleText = titleText;
-        this.subtitleText = subtitleText;
+        this.messageTemplate = messageTemplate;
         this.target = target;
         this.teamProvider = teamProvider;
         this.scheduler = scheduler;
@@ -46,54 +41,77 @@ public class TitleAction implements ArenaAction {
 
     @Override
     public @NotNull String getType() {
-        return "TITLE";
+        return "ACTION_BAR";
+    }
+
+    @NotNull
+    public String getMessageTemplate() {
+        return messageTemplate;
+    }
+
+    @Nullable
+    public String getTarget() {
+        return target;
     }
 
     @Override
     public void execute(@NotNull OutpostArena arena, @NotNull Map<String, Object> context) {
-        List<Player> targets = me.goosbanny.outposts.core.pipeline.ActionTargetResolver.resolvePlayers(
-                target, "GLOBAL", arena, context, teamProvider
-        );
+        List<Player> targets = ActionTargetResolver.resolvePlayers(target, "CONTROLLER", arena, context, teamProvider);
         if (targets.isEmpty()) return;
 
-        Component titleComp = miniMessage.deserialize(format(titleText, arena, context));
-        Component subComp = miniMessage.deserialize(format(subtitleText, arena, context));
-        Title title = Title.title(titleComp, subComp, Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(500)));
+        String formatted = formatTokens(messageTemplate, arena, context);
+        Component component = miniMessage.deserialize(formatted);
 
         for (Player p : targets) {
             if (p != null && p.isOnline()) {
-                scheduler.runForEntity(p, () -> p.showTitle(title));
+                scheduler.runForEntity(p, () -> p.sendActionBar(component));
             }
         }
     }
 
-    private String format(String raw, OutpostArena arena, Map<String, Object> context) {
-        String msg = raw.replace("<name>", miniMessage.serialize(arena.getDisplayName()));
+    private String formatTokens(String raw, OutpostArena arena, Map<String, Object> context) {
+        String msg = raw;
+        String prefix = Outposts.getInstance() != null && Outposts.getInstance().getLangManager() != null
+                ? Outposts.getInstance().getLangManager().getPrefix()
+                : "<#E13148><bold>OUTPOSTS</bold></#E13148><!bold> <gray>▶</gray> ";
+        msg = msg.replace("<prefix>", prefix);
+        msg = msg.replace("<name>", miniMessage.serialize(arena.getDisplayName()));
         msg = msg.replace("<id>", arena.getId());
+
+        boolean isSolo = arena.getOccupancyMode() == OccupancyMode.SOLO;
         String team = (String) context.getOrDefault("team", arena.getControllerTeamName());
+        String player = (String) context.get("player");
+        if (player == null && isSolo && team != null) {
+            player = team;
+        }
+
         if (team != null) {
             msg = msg.replace("<team>", team).replace("%team%", team);
         }
-        String player = (String) context.get("player");
         if (player != null) {
             msg = msg.replace("<player>", player).replace("%player%", player);
         }
+
         String prevTeam = (String) context.get("previous_team");
         if (prevTeam != null) {
             msg = msg.replace("<previous_team>", prevTeam).replace("%previous_team%", prevTeam);
         }
+
         String invader = (String) context.get("invader");
         if (invader != null) {
             msg = msg.replace("<invader>", invader).replace("%invader%", invader);
         }
+
         String invaderTeam = (String) context.get("invader_team");
         if (invaderTeam != null) {
             msg = msg.replace("<invader_team>", invaderTeam).replace("%invader_team%", invaderTeam);
         }
+
         Object held = context.get("seconds_held");
         if (held != null) {
             msg = msg.replace("<seconds_held>", String.valueOf(held));
         }
+
         return msg;
     }
 }

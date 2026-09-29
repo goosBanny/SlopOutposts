@@ -28,7 +28,7 @@
 | `/outpost region shift <outpost> [reg_id]` | `outposts.admin` | Forces an immediate shift to a random or specific region |
 | `/outpost reload` | `outposts.admin` | Hot-reloads all configs without interrupting captures |
 | `/outpost doctor` | `outposts.admin` | Audits system health, threading, hooks, and bounding boxes |
-| `/outpost forcestart <id>` | `outposts.admin` | Force unlocks an arena and initiates a capture cycle |
+| `/outpost forcestart <id> [duration]` | `outposts.admin` | Force unlocks an arena for duration seconds (default: 1800s / 30m; infinite if auto_start) |
 | `/outpost forcestop <id>` | `outposts.admin` | Force resets an arena back to neutral 0% |
 
 ---

@@ -50,96 +50,24 @@ public class ConsoleCommandAction implements ArenaAction {
 
     @Override
     public void execute(@NotNull OutpostArena arena, @NotNull Map<String, Object> context) {
-        String controllerId = (String) context.getOrDefault("team_id", arena.getControllerTeamId());
+        if ("PER_TEAM".equalsIgnoreCase(target) || "TEAM_CONSOLE".equalsIgnoreCase(target)) {
+            dispatchGlobal(arena, context, (String) context.get("player"));
+            return;
+        }
 
-        boolean isSolo = arena.getOccupancyMode() == OccupancyMode.SOLO;
+        List<Player> targets = me.goosbanny.outposts.core.pipeline.ActionTargetResolver.resolvePlayers(
+                target, "PLAYER", arena, context, teamProvider
+        );
 
-        switch (target) {
-            case "PER_TEAM", "TEAM_CONSOLE" -> {
-                // Dispatches once to global console on behalf of the team
-                dispatchGlobal(arena, context, (String) context.get("player"));
-            }
-            case "LEADER" -> {
-                if (controllerId == null) return;
-                if (isSolo) {
-                    try {
-                        Player soloPlayer = Bukkit.getPlayer(UUID.fromString(controllerId));
-                        if (soloPlayer != null && soloPlayer.isOnline()) {
-                            dispatchForPlayer(soloPlayer, arena, context);
-                            return;
-                        }
-                    } catch (IllegalArgumentException ignored) {}
-                }
-                List<Player> members = teamProvider.getOnlineMembersById(controllerId);
-                if (!members.isEmpty()) {
-                    Player sample = members.get(0);
-                    UUID leaderUuid = teamProvider.getTeamLeader(sample);
-                    if (leaderUuid != null) {
-                        Player leader = Bukkit.getPlayer(leaderUuid);
-                        if (leader != null && leader.isOnline()) {
-                            dispatchForPlayer(leader, arena, context);
-                            return;
-                        }
-                    }
-                }
-                // Fallback if leader is offline or UUID is string
-                dispatchGlobal(arena, context, null);
-            }
-            case "PER_PLAYER", "TEAM", "TEAM_ONLINE" -> {
-                if (controllerId == null) return;
-                if (isSolo) {
-                    try {
-                        Player soloPlayer = Bukkit.getPlayer(UUID.fromString(controllerId));
-                        if (soloPlayer != null && soloPlayer.isOnline()) {
-                            dispatchForPlayer(soloPlayer, arena, context);
-                            return;
-                        }
-                    } catch (IllegalArgumentException ignored) {}
-                }
-                List<Player> members = teamProvider.getOnlineMembersById(controllerId);
-                for (Player member : members) {
-                    if (member != null && member.isOnline()) {
-                        dispatchForPlayer(member, arena, context);
-                    }
+        if (!targets.isEmpty()) {
+            for (Player p : targets) {
+                if (p != null && p.isOnline()) {
+                    dispatchForPlayer(p, arena, context);
                 }
             }
-            case "ZONE" -> {
-                Location center = arena.getCenterLocation();
-                if (center != null && center.getWorld() != null) {
-                    World world = center.getWorld();
-                    for (Player p : world.getPlayers()) {
-                        if (arena.isWithinBounds(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ())) {
-                            dispatchForPlayer(p, arena, context);
-                        }
-                    }
-                }
-            }
-            case "TEAM_ZONE" -> {
-                if (controllerId == null) return;
-                Location center = arena.getCenterLocation();
-                if (center != null && center.getWorld() != null) {
-                    World world = center.getWorld();
-                    for (Player p : world.getPlayers()) {
-                        if (arena.isWithinBounds(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ())) {
-                            boolean isMember = isSolo
-                                    ? controllerId.equalsIgnoreCase(p.getUniqueId().toString())
-                                    : controllerId.equalsIgnoreCase(teamProvider.getTeamId(p));
-                            if (isMember) {
-                                dispatchForPlayer(p, arena, context);
-                            }
-                        }
-                    }
-                }
-            }
-            default -> { // PLAYER or single console dispatch
-                String playerName = (String) context.get("player");
-                Player player = playerName != null ? Bukkit.getPlayer(playerName) : null;
-                if (player != null && player.isOnline()) {
-                    dispatchForPlayer(player, arena, context);
-                } else {
-                    dispatchGlobal(arena, context, playerName);
-                }
-            }
+        } else {
+            String playerName = (String) context.get("player");
+            dispatchGlobal(arena, context, playerName);
         }
     }
 
@@ -160,12 +88,25 @@ public class ConsoleCommandAction implements ArenaAction {
     private String format(String template, OutpostArena arena, Map<String, Object> context, String playerName) {
         String cmd = template;
         cmd = cmd.replace("<id>", arena.getId());
+        cmd = cmd.replace("<name>", net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().serialize(arena.getDisplayName()));
         String team = (String) context.getOrDefault("team", arena.getControllerTeamName());
         if (team != null) {
             cmd = cmd.replace("%team%", team).replace("<team>", team);
         }
         if (playerName != null) {
             cmd = cmd.replace("%player%", playerName).replace("<player>", playerName);
+        }
+        String prevTeam = (String) context.get("previous_team");
+        if (prevTeam != null) {
+            cmd = cmd.replace("%previous_team%", prevTeam).replace("<previous_team>", prevTeam);
+        }
+        String invader = (String) context.get("invader");
+        if (invader != null) {
+            cmd = cmd.replace("%invader%", invader).replace("<invader>", invader);
+        }
+        Object held = context.get("seconds_held");
+        if (held != null) {
+            cmd = cmd.replace("<seconds_held>", String.valueOf(held));
         }
         cmd = cmd.replace("%percent%", String.format("%.1f", arena.getProgress()));
         cmd = cmd.replace("%world%", arena.getWorldName());

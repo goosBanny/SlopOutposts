@@ -107,9 +107,10 @@ Optional per-outpost overrides for capture zone combat rules (falls back to `con
 - **`passive_decay.rate_per_second`**: Bleed rate (in percent per second) deducted when an unfinished point is abandoned.
 - **`lose_control_threshold`**: Percentage at which the defending team officially loses ownership of the outpost. Default is `100.0` (attackers must knock defenders all the way down from 100% to 0% to take it). If set to `50.0`, attackers only need to push defenders down to 50% to neutralize the point.
 - **`hysteresis_buffer_percent`**: Buffer zone to prevent control status from flickering on/off if progress bounces near 100%. For example, with `2.0%`, defenders maintain control until their bar drops below `98.0%`.
+- **`reward_interval_seconds`**: Frequency (in seconds) at which `on_tick_reward` actions fire while holding the outpost uncontested (default: 30s).
 - **`state_change_cooldown_seconds`**: Stabilization delay (in seconds) before transitioning between active and uncontested states.
 
-### 4. `mode_settings` (Per-Mode Configuration)
+### 6. `mode_settings` (Per-Mode Configuration)
 Specific fine-tuning parameters for each game mode:
 - **`standard_hill`**:
   - `min_cappers_required`: Minimum valid players required inside the zone to begin capture (default: `1`).
@@ -123,11 +124,10 @@ Specific fine-tuning parameters for each game mode:
   - `target_tickets`: Score required for victory (default: `1000`).
   - `tickets_per_second`: Tickets generated per second while uncontested (default: `10.0`).
 
-### 5. `actions`
-- **`COMMAND_CONSOLE_PER_PLAYER`**: Dispatches console command for each online member of the controlling team (or the winning solo player).
-- **`COMMAND_CONSOLE_PER_TEAM`**: Dispatches console command once for the team/console.
-- **`COMMAND_CONSOLE`**: Standard command execution with optional `target: "PLAYER" | "LEADER" | "TEAM" | "ZONE" | "TEAM_ZONE"`.
-- **`TEAM_BANK_DEPOSIT`**: Directly deposits into team bank (ZelTeams / Vault / BetterTeams) or player account in SOLO mode.
+### 7. `actions`
+Configures automated actions (messages, action bars, titles, sounds, bank deposits, console commands) triggered on `on_capture`, `on_lost`, `on_contest`, and `on_tick_reward`.
+
+👉 **For complete details, see [Actions & Triggers](Actions-&-Triggers) and the [Creating Rewards Cookbook](Creating-Rewards).**
 
 ---
 

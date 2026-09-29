@@ -23,9 +23,12 @@ import me.goosbanny.outposts.core.mechanics.StandardHillEngine;
 import me.goosbanny.outposts.core.mechanics.TicketAccumulationEngine;
 import me.goosbanny.outposts.core.mechanics.TugOfWarEngine;
 import me.goosbanny.outposts.core.pipeline.DefaultActionPipeline;
+import me.goosbanny.outposts.core.pipeline.IntervalFilteredAction;
+import me.goosbanny.outposts.core.pipeline.actions.ActionBarAction;
 import me.goosbanny.outposts.core.pipeline.actions.BroadcastAction;
 import me.goosbanny.outposts.core.pipeline.actions.ConsoleCommandAction;
 import me.goosbanny.outposts.core.pipeline.actions.FactionBankDepositAction;
+import me.goosbanny.outposts.core.pipeline.actions.MessageAction;
 import me.goosbanny.outposts.core.pipeline.actions.TeamBankDepositAction;
 import me.goosbanny.outposts.core.pipeline.actions.TitleAction;
 import me.goosbanny.outposts.core.pipeline.actions.SoundAction;
@@ -528,10 +531,30 @@ public class ArenaSerializer {
         List<Map<?, ?>> actionList = yaml.getMapList(path);
         for (Map<?, ?> map : actionList) {
             String type = String.valueOf(map.get("type")).toUpperCase();
+            ArenaAction action = null;
+
             switch (type) {
                 case "BROADCAST" -> {
                     String msg = String.valueOf(map.get("message"));
-                    pipeline.addAction(trigger, new BroadcastAction(msg));
+                    action = new BroadcastAction(msg);
+                }
+                case "MESSAGE" -> {
+                    String target = map.containsKey("target") ? String.valueOf(map.get("target")) : null;
+                    if (map.containsKey("messages") && map.get("messages") instanceof List<?> list) {
+                        List<String> msgList = new ArrayList<>();
+                        for (Object o : list) {
+                            if (o != null) msgList.add(String.valueOf(o));
+                        }
+                        action = new MessageAction(msgList, target, teamProvider, scheduler);
+                    } else {
+                        String msg = map.containsKey("message") ? String.valueOf(map.get("message")) : "";
+                        action = new MessageAction(msg, target, teamProvider, scheduler);
+                    }
+                }
+                case "ACTION_BAR" -> {
+                    String msg = map.containsKey("message") ? String.valueOf(map.get("message")) : "";
+                    String target = map.containsKey("target") ? String.valueOf(map.get("target")) : null;
+                    action = new ActionBarAction(msg, target, teamProvider, scheduler);
                 }
                 case "COMMAND_CONSOLE", "COMMAND_CONSOLE_PER_PLAYER", "COMMAND_CONSOLE_PER_TEAM" -> {
                     String cmd = String.valueOf(map.get("command"));
@@ -543,23 +566,24 @@ public class ArenaSerializer {
                     } else {
                         target = map.containsKey("target") ? String.valueOf(map.get("target")) : null;
                     }
-                    pipeline.addAction(trigger, new ConsoleCommandAction(cmd, target, teamProvider, scheduler));
+                    action = new ConsoleCommandAction(cmd, target, teamProvider, scheduler);
                 }
                 case "TEAM_BANK_DEPOSIT", "FACTION_BANK_DEPOSIT" -> {
                     double amt = parseDoubleSafe(map.get("amount"), 0.0);
-                    pipeline.addAction(trigger, new TeamBankDepositAction(amt, economyProvider));
+                    action = new TeamBankDepositAction(amt, economyProvider);
                 }
                 case "SOUND" -> {
                     String key = String.valueOf(map.get("sound"));
                     float vol = parseFloatSafe(map.get("volume"), 1.0f);
                     float pitch = parseFloatSafe(map.get("pitch"), 1.0f);
-                    pipeline.addAction(trigger, new SoundAction(key, vol, pitch));
+                    String target = map.containsKey("target") ? String.valueOf(map.get("target")) : null;
+                    action = new SoundAction(key, vol, pitch, target, teamProvider, scheduler);
                 }
                 case "TITLE" -> {
                     String title = map.containsKey("title") ? String.valueOf(map.get("title")) : "";
                     String subtitle = map.containsKey("subtitle") ? String.valueOf(map.get("subtitle")) : "";
                     String target = map.containsKey("target") ? String.valueOf(map.get("target")) : null;
-                    pipeline.addAction(trigger, new TitleAction(title, subtitle, target, teamProvider, scheduler));
+                    action = new TitleAction(title, subtitle, target, teamProvider, scheduler);
                 }
                 default -> {
                     if (Bukkit.getServer() != null) {
@@ -568,6 +592,14 @@ public class ArenaSerializer {
                         );
                     }
                 }
+            }
+
+            if (action != null) {
+                int everySecs = parseIntSafe(map.containsKey("every_seconds") ? map.get("every_seconds") : map.get("interval_seconds"), 0);
+                if (everySecs > 0) {
+                    action = new IntervalFilteredAction(action, everySecs);
+                }
+                pipeline.addAction(trigger, action);
             }
         }
     }
