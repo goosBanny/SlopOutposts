@@ -108,15 +108,104 @@ public class OutpostsPlaceholderExpansion extends PlaceholderExpansion {
             return scheduleManager != null ? scheduleManager.getNextEventFormatted() : none;
         }
 
-        // 2. Arena-scoped placeholders:
+        // 2. Scheduler-scoped placeholders:
+        // Examples:
+        //   %outpost_scheduler_next_<id>_formatted%
+        //   %outpost_scheduler_next_<id>_seconds%
+        //   %outpost_scheduler_next_<id>%
+        //   %outpost_scheduler_<id>_next_formatted%
+        //   %outpost_scheduler_is_active_<id>%
+        //   %outpost_schedule_next_<id>_formatted% (supports "schedule_" or "scheduler_")
+        if (lower.startsWith("scheduler_") || lower.startsWith("schedule_")) {
+            if (scheduleManager == null) {
+                return none;
+            }
+
+            String stripped = lower.startsWith("scheduler_")
+                    ? lower.substring("scheduler_".length())
+                    : lower.substring("schedule_".length());
+
+            // Global next: scheduler_next_formatted / scheduler_next
+            if ("next_formatted".equals(stripped) || "next".equals(stripped)) {
+                return scheduleManager.getNextEventFormatted();
+            }
+
+            // is_active pattern: scheduler_is_active_<id>
+            if (stripped.startsWith("is_active_")) {
+                String id = stripped.substring("is_active_".length());
+                ScheduleManager.ScheduleEntry entry = scheduleManager.getSchedule(id);
+                return entry != null && entry.isActive() ? boolTrue : boolFalse;
+            }
+
+            // is_active pattern: scheduler_<id>_is_active
+            if (stripped.endsWith("_is_active")) {
+                String id = stripped.substring(0, stripped.length() - "_is_active".length());
+                ScheduleManager.ScheduleEntry entry = scheduleManager.getSchedule(id);
+                return entry != null && entry.isActive() ? boolTrue : boolFalse;
+            }
+
+            // next prefix: scheduler_next_<id>_formatted, scheduler_next_<id>_seconds, scheduler_next_<id>
+            if (stripped.startsWith("next_")) {
+                String rest = stripped.substring(5);
+                if (rest.endsWith("_formatted")) {
+                    String id = rest.substring(0, rest.length() - "_formatted".length());
+                    return scheduleManager.getNextScheduleEventFormatted(id);
+                } else if (rest.endsWith("_seconds")) {
+                    String id = rest.substring(0, rest.length() - "_seconds".length());
+                    Long sec = scheduleManager.getNextScheduleStartSeconds(id);
+                    return sec != null ? String.valueOf(sec) : "-1";
+                } else {
+                    return scheduleManager.getNextScheduleEventFormatted(rest);
+                }
+            }
+
+            // next suffix: scheduler_<id>_next_formatted, scheduler_<id>_next_seconds, scheduler_<id>_next
+            if (stripped.endsWith("_next_formatted")) {
+                String id = stripped.substring(0, stripped.length() - "_next_formatted".length());
+                return scheduleManager.getNextScheduleEventFormatted(id);
+            } else if (stripped.endsWith("_next_seconds")) {
+                String id = stripped.substring(0, stripped.length() - "_next_seconds".length());
+                Long sec = scheduleManager.getNextScheduleStartSeconds(id);
+                return sec != null ? String.valueOf(sec) : "-1";
+            } else if (stripped.endsWith("_next")) {
+                String id = stripped.substring(0, stripped.length() - "_next".length());
+                return scheduleManager.getNextScheduleEventFormatted(id);
+            }
+
+            // Direct schedule ID fallback: scheduler_<id>
+            ScheduleManager.ScheduleEntry entry = scheduleManager.getSchedule(stripped);
+            if (entry != null) {
+                return scheduleManager.getNextScheduleEventFormatted(stripped);
+            }
+        }
+
+        // 3. Arena-scoped placeholders:
         // Formats supported:
         //   A: arena_<id>_<property>   e.g. arena_south_controller
-        //   B: <property>_<id>         e.g. controller_team_south, progress_south
-        //   C: <id>_<property>         e.g. south_controller, south_progress
+        //   B: <property>_<id>         e.g. controller_team_south, is_active_south
+        //   C: <id>_<property>         e.g. south_controller, south_is_active
         String targetArenaId = null;
         String property = null;
 
-        if (lower.startsWith("arena_")) {
+        // Try direct matching against registered arena IDs first
+        for (OutpostArena a : arenaManager.getArenas()) {
+            String aId = a.getId().toLowerCase();
+            if (lower.startsWith("arena_" + aId + "_")) {
+                targetArenaId = aId;
+                property = lower.substring(("arena_" + aId + "_").length());
+                break;
+            } else if (lower.startsWith(aId + "_")) {
+                targetArenaId = aId;
+                property = lower.substring((aId + "_").length());
+                break;
+            } else if (lower.endsWith("_" + aId)) {
+                targetArenaId = aId;
+                property = lower.substring(0, lower.length() - aId.length() - 1);
+                break;
+            }
+        }
+
+        if (targetArenaId == null && lower.startsWith("arena_")) {
             String remainder = lower.substring(6);
             int underscore = remainder.indexOf('_');
             if (underscore > 0) {
@@ -147,14 +236,6 @@ public class OutpostsPlaceholderExpansion extends PlaceholderExpansion {
             }
         }
 
-        if (targetArenaId == null) {
-            int lastUnderscore = lower.lastIndexOf('_');
-            if (lastUnderscore > 0) {
-                targetArenaId = lower.substring(lastUnderscore + 1);
-                property = lower.substring(0, lastUnderscore);
-            }
-        }
-
         if (targetArenaId == null || property == null) {
             return null;
         }
@@ -170,8 +251,8 @@ public class OutpostsPlaceholderExpansion extends PlaceholderExpansion {
         }
 
         switch (property) {
-            case "is_active", "active":
-                return view.getState() != ArenaState.LOCKED ? boolTrue : boolFalse;
+            case "is_active", "active", "is_running", "running":
+                return view.isActive() ? boolTrue : boolFalse;
             case "is_contested", "contested":
                 return view.isContested() ? boolTrue : boolFalse;
             case "is_locked", "locked":

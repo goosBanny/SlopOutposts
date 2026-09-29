@@ -63,4 +63,11 @@ public interface ArenaView {
     default long getActiveDurationRemainingSeconds() {
         return -1;
     }
+
+    /**
+     * True if the outpost event is currently operational / active.
+     */
+    default boolean isActive() {
+        return getState() != ArenaState.LOCKED;
+    }
 }

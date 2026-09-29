@@ -83,6 +83,17 @@ public class ScheduleManager {
             this.dispatchedWarningsForCycle.clear();
         }
 
+        @NotNull
+        public ZonedDateTime getNextStart(@NotNull ZonedDateTime now) {
+            ZonedDateTime current = nextScheduledStart;
+            if (current != null && current.isAfter(now)) {
+                return current;
+            }
+            ZonedDateTime next = cron.nextMatching(now);
+            this.nextScheduledStart = next;
+            return next;
+        }
+
         public String getId() { return id; }
         public String getArenaId() { return arenaId; }
         public CronExpression getCron() { return cron; }
@@ -271,6 +282,11 @@ public class ScheduleManager {
         entry.activeEndMillis = System.currentTimeMillis() + (entry.getDurationMinutes() * 60_000L);
         arena.setActive(true);
 
+        // Precalculate next scheduled start for this schedule
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        entry.nextScheduledStart = entry.getCron().nextMatching(now);
+        entry.dispatchedWarningsForCycle.clear();
+
         Map<String, String> tokens = new HashMap<>();
         tokens.put("name", miniMessage.serialize(arena.getDisplayName()));
         Bukkit.broadcast(langManager.get("broadcasts.event_started", tokens));
@@ -357,19 +373,49 @@ public class ScheduleManager {
         return langManager.getPlaceholder("none", "None");
     }
 
-    private String formatSeconds(long totalSeconds) {
-        long hours = totalSeconds / 3600;
+    public String formatSeconds(long totalSeconds) {
+        long days = totalSeconds / 86400;
+        long hours = (totalSeconds % 86400) / 3600;
         long minutes = (totalSeconds % 3600) / 60;
         long seconds = totalSeconds % 60;
-        if (hours > 24) {
-            long days = hours / 24;
-            hours = hours % 24;
+        if (days > 0) {
             return String.format("%dd %02d:%02d:%02d", days, hours, minutes, seconds);
         } else if (hours > 0) {
             return String.format("%02d:%02d:%02d", hours, minutes, seconds);
         } else {
             return String.format("%02d:%02d", minutes, seconds);
         }
+    }
+
+    @Nullable
+    public ScheduleEntry getSchedule(@NotNull String identifier) {
+        String lower = identifier.toLowerCase();
+        ScheduleEntry entry = scheduleMap.get(lower);
+        if (entry != null) {
+            return entry;
+        }
+        return arenaIdIndex.get(lower);
+    }
+
+    @Nullable
+    public Long getNextScheduleStartSeconds(@NotNull String identifier) {
+        ScheduleEntry entry = getSchedule(identifier);
+        if (entry == null) {
+            return null;
+        }
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        ZonedDateTime next = entry.getNextStart(now);
+        Duration diff = Duration.between(now, next);
+        return Math.max(0L, diff.toSeconds());
+    }
+
+    @NotNull
+    public String getNextScheduleEventFormatted(@NotNull String identifier) {
+        Long seconds = getNextScheduleStartSeconds(identifier);
+        if (seconds == null) {
+            return langManager.getPlaceholder("none", "None");
+        }
+        return formatSeconds(seconds);
     }
 
     @NotNull

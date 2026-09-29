@@ -494,7 +494,8 @@ public class DefaultOutpostArena implements OutpostArena {
                     isContested,
                     lockoutRemainingSeconds,
                     occupancyMode,
-                    activeDurationRemainingSeconds
+                    activeDurationRemainingSeconds,
+                    active
             );
             cachedSnapshot.set(fresh);
             snapshotDirty.set(false);

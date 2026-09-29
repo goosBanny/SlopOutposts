@@ -10,7 +10,7 @@ Replace `<id>` with the unique ID of your outpost (e.g. `south`, `desert`, `neth
 
 | Placeholder | Example Output | Description |
 | :--- | :--- | :--- |
-| `%outpost_is_active_<id>%` | `true` | True if the arena is not in post-capture lockout. |
+| `%outpost_is_active_<id>%` | `true` | True if the outpost event is currently operational/running (also supported as `%outpost_<id>_is_active%`). |
 | `%outpost_is_contested_<id>%` | `false` | True if two or more opposing teams contest the zone. |
 | `%outpost_is_locked_<id>%` | `false` | True if the arena is currently locked. |
 | `%outpost_state_formatted_<id>%` | `Controlled` | Capitalized status chip (`Neutral`, `Capturing`, `Controlled`, `Contested`, `Locked`). |
@@ -36,9 +36,16 @@ Replace `<id>` with the unique ID of your outpost (e.g. `south`, `desert`, `neth
 
 ## Global & Schedule Placeholders
 
+Replace `<schedule_id>` with the schedule key from `schedules.yml` (e.g. `weekend_war`) or the associated arena ID (e.g. `south`):
+
 | Placeholder | Example Output | Description |
 | :--- | :--- | :--- |
-| `%outpost_next_event_time%` | `1h 24m` / `Active` / `Overtime` | Schedule countdown until the next active event window. |
+| `%outpost_next_event_time%` | `01:24:00` / `Overtime` | Countdown until the next active event window, or current active/overtime status. |
+| `%outpost_scheduler_next_<schedule_id>_formatted%` | `23:45:10` / `1d 04:12:00` | Formatted countdown strictly pointing to the next occurrence (always points to the upcoming start time; does not switch to "Active"). |
+| `%outpost_scheduler_next_<schedule_id>_seconds%` | `85510` | Total seconds remaining until the next start time for this schedule. |
+| `%outpost_scheduler_is_active_<schedule_id>%` | `true` / `false` | True if this specific scheduled event is currently running. |
+
+*(Note: `schedule_` can be used interchangeably with `scheduler_`, e.g. `%outpost_schedule_next_<schedule_id>_formatted%`)*
 
 ---
 
